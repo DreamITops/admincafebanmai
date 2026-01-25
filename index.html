@@ -12,12 +12,53 @@
 
     <style>
         body { background: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .sidebar { width: 260px; height: 100vh; background: #2c3e50; color: white; position: fixed; padding: 20px; z-index: 100; }
-        .main { margin-left: 260px; padding: 30px; }
-        .nav-item { padding: 12px; margin-bottom: 5px; cursor: pointer; border-radius: 8px; color: #ccc; display: flex; align-items: center; gap: 10px; }
+        
+        /* --- Sidebar Styles --- */
+        .sidebar { 
+            width: 260px; 
+            height: 100vh; 
+            background: #2c3e50; 
+            color: white; 
+            position: fixed; 
+            padding: 20px; 
+            z-index: 100; 
+            transition: all 0.3s ease; /* Animation */
+            overflow-x: hidden;
+        }
+
+        .main { 
+            margin-left: 260px; 
+            padding: 30px; 
+            transition: all 0.3s ease; /* Animation */
+        }
+
+        .nav-item { 
+            padding: 12px; 
+            margin-bottom: 5px; 
+            cursor: pointer; 
+            border-radius: 8px; 
+            color: #ccc; 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; /* Space between icon and text */
+            white-space: nowrap; /* Prevent text wrapping */
+            overflow: hidden;
+        }
+        
         .nav-item:hover, .nav-item.active { background: #34495e; color: white; font-weight: bold; }
+        .nav-item i { min-width: 20px; text-align: center; font-size: 1.1rem; }
+
+        /* --- Minimized State (เมื่อย่อ) --- */
+        body.sidebar-mini .sidebar { width: 80px; padding: 20px 10px; }
+        body.sidebar-mini .main { margin-left: 80px; }
+        body.sidebar-mini .nav-text { opacity: 0; pointer-events: none; display: none;} /* ซ่อนข้อความ */
+        body.sidebar-mini .sidebar-header-text { display: none; } /* ซ่อนชื่อ App */
+        body.sidebar-mini .nav-item { justify-content: center; } /* จัดไอคอนกึ่งกลาง */
+        
+        /* Image Upload Box */
         .img-preview-box { width: 120px; height: 120px; border: 2px dashed #ccc; border-radius: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; margin: 0 auto; background: #f9f9f9;}
         .img-preview-box img { width: 100%; height: 100%; object-fit: cover; }
+        
         @media(max-width: 992px) {
             .sidebar { display: none; }
             .main { margin-left: 0; padding: 15px; }
@@ -27,10 +68,22 @@
 <body>
 
 <div class="sidebar d-none d-lg-block">
-    <h4 class="mb-4 ps-2 text-warning"><i class="fas fa-utensils"></i> Admin Pro</h4>
-    <div class="nav-item active" onclick="switchTab('dashboard', this)"><i class="fas fa-home"></i> ออเดอร์ & ภาพรวม</div>
-    <div class="nav-item" onclick="switchTab('menu', this)"><i class="fas fa-book"></i> จัดการเมนูอาหาร</div>
-    <div class="nav-item mt-5 text-danger" onclick="location.reload()"><i class="fas fa-sync"></i> รีเฟรชระบบ</div>
+    <div class="d-flex align-items-center justify-content-between mb-4 ps-2">
+        <h4 class="m-0 text-warning fw-bold sidebar-header-text"><i class="fas fa-utensils"></i> Admin</h4>
+        <button class="btn btn-sm btn-outline-secondary text-white border-0" onclick="toggleSidebar()">
+            <i class="fas fa-bars fa-lg"></i>
+        </button>
+    </div>
+
+    <div class="nav-item active" onclick="switchTab('dashboard', this)">
+        <i class="fas fa-home"></i> <span class="nav-text">ออเดอร์ & ภาพรวม</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('menu', this)">
+        <i class="fas fa-book"></i> <span class="nav-text">จัดการเมนูอาหาร</span>
+    </div>
+    <div class="nav-item mt-5 text-danger" onclick="location.reload()">
+        <i class="fas fa-sync"></i> <span class="nav-text">รีเฟรชระบบ</span>
+    </div>
 </div>
 
 <div class="main">
@@ -133,6 +186,11 @@
     // Realtime Listener
     db.channel('admin-chan').on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchOrders()).subscribe();
 
+    // --- Sidebar Toggle Logic ---
+    function toggleSidebar() {
+        document.body.classList.toggle('sidebar-mini');
+    }
+
     function switchTab(view, btn) {
         document.getElementById('view-dashboard').classList.add('d-none');
         document.getElementById('view-menu').classList.add('d-none');
@@ -147,7 +205,6 @@
 
     // --- Dashboard Logic ---
     async function fetchOrders() {
-        // แก้ไข: ใช้ created_at แทน updated_at เพื่อแก้ปัญหา Error 400
         const { data, error } = await db.from('orders')
             .select('*')
             .neq('status', 'paid')
@@ -155,8 +212,7 @@
             
         if(error) { 
             console.error("Fetch Error:", error); 
-            // แสดง Error ถ้ามีปัญหาอื่น
-            if(error.code !== 'PGRST100') { // ข้าม error พื้นฐานบางตัว
+            if(error.code !== 'PGRST100') { 
                  document.getElementById('orderGrid').innerHTML = `<div class="col-12 text-center text-danger py-5">เกิดข้อผิดพลาด: ${error.message}<br>กรุณาเช็ค Console</div>`;
             }
             return; 
