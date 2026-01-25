@@ -16,12 +16,10 @@
         .main { margin-left: 260px; padding: 30px; }
         .nav-item { padding: 12px; margin-bottom: 5px; cursor: pointer; border-radius: 8px; color: #ccc; display: flex; align-items: center; gap: 10px; }
         .nav-item:hover, .nav-item.active { background: #34495e; color: white; font-weight: bold; }
-        
         .img-preview-box { width: 120px; height: 120px; border: 2px dashed #ccc; border-radius: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; margin: 0 auto; background: #f9f9f9;}
         .img-preview-box img { width: 100%; height: 100%; object-fit: cover; }
-        
         @media(max-width: 992px) {
-            .sidebar { display: none; } /* ซ่อน Sidebar บนมือถือเพื่อความง่าย */
+            .sidebar { display: none; }
             .main { margin-left: 0; padding: 15px; }
         }
     </style>
@@ -29,7 +27,7 @@
 <body>
 
 <div class="sidebar d-none d-lg-block">
-    <h4 class="mb-4 ps-2 text-warning"><i class="fas fa-utensils"></i> CAFE BANMAI</h4>
+    <h4 class="mb-4 ps-2 text-warning"><i class="fas fa-utensils"></i> Admin Pro</h4>
     <div class="nav-item active" onclick="switchTab('dashboard', this)"><i class="fas fa-home"></i> ออเดอร์ & ภาพรวม</div>
     <div class="nav-item" onclick="switchTab('menu', this)"><i class="fas fa-book"></i> จัดการเมนูอาหาร</div>
     <div class="nav-item mt-5 text-danger" onclick="location.reload()"><i class="fas fa-sync"></i> รีเฟรชระบบ</div>
@@ -147,7 +145,26 @@
         if(view === 'dashboard') fetchOrders();
     }
 
+    // --- Dashboard Logic ---
     async function fetchOrders() {
+        // แก้ไข: ใช้ created_at แทน updated_at เพื่อแก้ปัญหา Error 400
+        const { data, error } = await db.from('orders')
+            .select('*')
+            .neq('status', 'paid')
+            .order('created_at', {ascending:false}); 
+            
+        if(error) { 
+            console.error("Fetch Error:", error); 
+            // แสดง Error ถ้ามีปัญหาอื่น
+            if(error.code !== 'PGRST100') { // ข้าม error พื้นฐานบางตัว
+                 document.getElementById('orderGrid').innerHTML = `<div class="col-12 text-center text-danger py-5">เกิดข้อผิดพลาด: ${error.message}<br>กรุณาเช็ค Console</div>`;
+            }
+            return; 
+        }
+        
+        currentOrders = data || [];
+        renderDashboard();
+    }
 
     function renderDashboard() {
         const grid = document.getElementById('orderGrid');
@@ -177,7 +194,7 @@
         });
     }
 
-    async function setStatus(id, st) { await db.from('orders').update({status:st}).eq('id', id); }
+    async function setStatus(id, st) { await db.from('orders').update({status:st}).eq('id', id); fetchOrders(); }
 
     function openBill(id) {
         selectedOrder = currentOrders.find(o=>o.id===id);
@@ -193,6 +210,7 @@
         if(confirm('ปิดโต๊ะ รับเงินเรียบร้อย?')) {
             await db.from('orders').update({status:'paid'}).eq('id', selectedOrder.id);
             bootstrap.Modal.getInstance(document.getElementById('billModal')).hide();
+            fetchOrders();
         }
     }
 
@@ -270,7 +288,7 @@
             const file = fileInput.files[0];
             const fileName = `menu_${Date.now()}`;
             const { error } = await db.storage.from('menu_images').upload(fileName, file);
-            if (error) { Swal.fire('Error', 'ต้องสร้าง Bucket "menu_images" ก่อน', 'error'); return; }
+            if (error) { Swal.fire('Error', 'กรุณาสร้าง Bucket "menu_images" และเปิด Public ก่อนครับ', 'error'); return; }
             const { data } = db.storage.from('menu_images').getPublicUrl(fileName);
             imageUrl = data.publicUrl;
         }
