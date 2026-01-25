@@ -13,52 +13,29 @@
     <style>
         body { background: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         
-        /* --- Sidebar Styles --- */
+        /* Sidebar */
         .sidebar { 
-            width: 260px; 
-            height: 100vh; 
-            background: #2c3e50; 
-            color: white; 
-            position: fixed; 
-            padding: 20px; 
-            z-index: 100; 
-            transition: all 0.3s ease; /* Animation */
-            overflow-x: hidden;
+            width: 260px; height: 100vh; background: #2c3e50; color: white; position: fixed; 
+            padding: 20px; z-index: 100; transition: all 0.3s ease; overflow-x: hidden;
         }
-
-        .main { 
-            margin-left: 260px; 
-            padding: 30px; 
-            transition: all 0.3s ease; /* Animation */
-        }
-
+        .main { margin-left: 260px; padding: 30px; transition: all 0.3s ease; }
         .nav-item { 
-            padding: 12px; 
-            margin-bottom: 5px; 
-            cursor: pointer; 
-            border-radius: 8px; 
-            color: #ccc; 
-            display: flex; 
-            align-items: center; 
-            gap: 15px; /* Space between icon and text */
-            white-space: nowrap; /* Prevent text wrapping */
-            overflow: hidden;
+            padding: 12px; margin-bottom: 5px; cursor: pointer; border-radius: 8px; color: #ccc; 
+            display: flex; align-items: center; gap: 15px; white-space: nowrap; overflow: hidden;
         }
-        
         .nav-item:hover, .nav-item.active { background: #34495e; color: white; font-weight: bold; }
         .nav-item i { min-width: 20px; text-align: center; font-size: 1.1rem; }
 
-        /* --- Minimized State (เมื่อย่อ) --- */
+        /* Minimized Sidebar */
         body.sidebar-mini .sidebar { width: 80px; padding: 20px 10px; }
         body.sidebar-mini .main { margin-left: 80px; }
-        body.sidebar-mini .nav-text { opacity: 0; pointer-events: none; display: none;} /* ซ่อนข้อความ */
-        body.sidebar-mini .sidebar-header-text { display: none; } /* ซ่อนชื่อ App */
-        body.sidebar-mini .nav-item { justify-content: center; } /* จัดไอคอนกึ่งกลาง */
-        
-        /* Image Upload Box */
+        body.sidebar-mini .nav-text, body.sidebar-mini .sidebar-header-text { display: none; }
+        body.sidebar-mini .nav-item { justify-content: center; }
+
+        /* Image Upload */
         .img-preview-box { width: 120px; height: 120px; border: 2px dashed #ccc; border-radius: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; margin: 0 auto; background: #f9f9f9;}
         .img-preview-box img { width: 100%; height: 100%; object-fit: cover; }
-        
+
         @media(max-width: 992px) {
             .sidebar { display: none; }
             .main { margin-left: 0; padding: 15px; }
@@ -70,20 +47,11 @@
 <div class="sidebar d-none d-lg-block">
     <div class="d-flex align-items-center justify-content-between mb-4 ps-2">
         <h4 class="m-0 text-warning fw-bold sidebar-header-text"><i class="fas fa-utensils"></i> Admin</h4>
-        <button class="btn btn-sm btn-outline-secondary text-white border-0" onclick="toggleSidebar()">
-            <i class="fas fa-bars fa-lg"></i>
-        </button>
+        <button class="btn btn-sm btn-outline-secondary text-white border-0" onclick="toggleSidebar()"><i class="fas fa-bars fa-lg"></i></button>
     </div>
-
-    <div class="nav-item active" onclick="switchTab('dashboard', this)">
-        <i class="fas fa-home"></i> <span class="nav-text">ออเดอร์ & ภาพรวม</span>
-    </div>
-    <div class="nav-item" onclick="switchTab('menu', this)">
-        <i class="fas fa-book"></i> <span class="nav-text">จัดการเมนูอาหาร</span>
-    </div>
-    <div class="nav-item mt-5 text-danger" onclick="location.reload()">
-        <i class="fas fa-sync"></i> <span class="nav-text">รีเฟรชระบบ</span>
-    </div>
+    <div class="nav-item active" onclick="switchTab('dashboard', this)"><i class="fas fa-home"></i> <span class="nav-text">ออเดอร์ & ภาพรวม</span></div>
+    <div class="nav-item" onclick="switchTab('menu', this)"><i class="fas fa-book"></i> <span class="nav-text">จัดการเมนูอาหาร</span></div>
+    <div class="nav-item mt-5 text-danger" onclick="location.reload()"><i class="fas fa-sync"></i> <span class="nav-text">รีเฟรชระบบ</span></div>
 </div>
 
 <div class="main">
@@ -100,7 +68,6 @@
             <div class="col-6"><div class="card p-3 border-start border-4 border-primary"><h3><i class="fas fa-chair"></i> <span id="activeTables">0</span></h3><small>โต๊ะเปิดอยู่</small></div></div>
             <div class="col-6"><div class="card p-3 border-start border-4 border-success"><h3><i class="fas fa-coins"></i> <span id="pendingSales">0</span></h3><small>ยอดรอเก็บ</small></div></div>
         </div>
-        
         <h5 class="fw-bold"><i class="fas fa-list"></i> รายการออเดอร์</h5>
         <div class="row" id="orderGrid"><div class="col-12 text-center py-5">Loading...</div></div>
     </div>
@@ -137,7 +104,7 @@
                         <small class="text-muted">แตะที่รูปเพื่ออัปโหลด</small>
                     </div>
                     <input type="text" id="menuName" class="form-control mb-2" placeholder="ชื่อเมนู" required>
-                    <div class="row mb-2">
+                    <div class="row mb-3">
                         <div class="col-6"><input type="number" id="menuPrice" class="form-control" placeholder="ราคา" required></div>
                         <div class="col-6">
                             <select id="menuCategory" class="form-select">
@@ -147,8 +114,14 @@
                             </select>
                         </div>
                     </div>
-                    <label>ตัวเลือก (Topping)</label>
-                    <textarea id="menuOptions" class="form-control" rows="2" placeholder="เช่น ร้อน:0, เย็น:5"></textarea>
+                    
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="fw-bold">ตัวเลือกเสริม (Topping)</label>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addToppingInput()">+ เพิ่มตัวเลือก</button>
+                    </div>
+                    <div id="toppingContainer" class="bg-light p-2 rounded" style="max-height: 200px; overflow-y: auto;">
+                        </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -181,15 +154,11 @@
     let currentOrders = [];
     let selectedOrder = null;
 
-    // --- Start ---
+    // --- Init ---
     fetchOrders();
-    // Realtime Listener
     db.channel('admin-chan').on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchOrders()).subscribe();
 
-    // --- Sidebar Toggle Logic ---
-    function toggleSidebar() {
-        document.body.classList.toggle('sidebar-mini');
-    }
+    function toggleSidebar() { document.body.classList.toggle('sidebar-mini'); }
 
     function switchTab(view, btn) {
         document.getElementById('view-dashboard').classList.add('d-none');
@@ -205,19 +174,12 @@
 
     // --- Dashboard Logic ---
     async function fetchOrders() {
-        const { data, error } = await db.from('orders')
-            .select('*')
-            .neq('status', 'paid')
-            .order('created_at', {ascending:false}); 
-            
+        const { data, error } = await db.from('orders').select('*').neq('status', 'paid').order('created_at', {ascending:false}); 
         if(error) { 
             console.error("Fetch Error:", error); 
-            if(error.code !== 'PGRST100') { 
-                 document.getElementById('orderGrid').innerHTML = `<div class="col-12 text-center text-danger py-5">เกิดข้อผิดพลาด: ${error.message}<br>กรุณาเช็ค Console</div>`;
-            }
+            if(error.code !== 'PGRST100') document.getElementById('orderGrid').innerHTML = `<div class="col-12 text-center text-danger py-5">Error: ${error.message}</div>`;
             return; 
         }
-        
         currentOrders = data || [];
         renderDashboard();
     }
@@ -292,11 +254,26 @@
         });
     }
 
+    // --- New Topping Logic ---
+    function addToppingInput(name = '', price = 0) {
+        const div = document.createElement('div');
+        div.className = 'input-group mb-2 topping-row';
+        div.innerHTML = `
+            <input type="text" class="form-control topping-name" placeholder="ชื่อตัวเลือก (เช่น ร้อน)" value="${name}">
+            <input type="number" class="form-control topping-price" placeholder="ราคาเพิ่ม" value="${price}">
+            <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+        `;
+        document.getElementById('toppingContainer').appendChild(div);
+    }
+
     function openMenuModal() {
         document.getElementById('modalTitle').innerText = "เพิ่มเมนูใหม่";
         document.getElementById('menuForm').reset();
         document.getElementById('editMenuId').value = "";
         document.getElementById('previewImg').src = "https://via.placeholder.com/150?text=Upload";
+        document.getElementById('toppingContainer').innerHTML = ''; // Clear toppings
+        // Default topping input
+        addToppingInput(); 
         new bootstrap.Modal(document.getElementById('menuModal')).show();
     }
 
@@ -310,9 +287,14 @@
         document.getElementById('menuCategory').value = menu.category || 'อาหาร';
         document.getElementById('previewImg').src = menu.image_url || "https://via.placeholder.com/150";
         
-        let optStr = "";
-        if(menu.options && Array.isArray(menu.options)) optStr = menu.options.map(o => `${o.name}:${o.price}`).join(', ');
-        document.getElementById('menuOptions').value = optStr;
+        // Populate Toppings
+        const container = document.getElementById('toppingContainer');
+        container.innerHTML = '';
+        if(menu.options && Array.isArray(menu.options) && menu.options.length > 0) {
+            menu.options.forEach(opt => addToppingInput(opt.name, opt.price));
+        } else {
+            addToppingInput(); // Empty row if none
+        }
         
         new bootstrap.Modal(document.getElementById('menuModal')).show();
     }
@@ -328,18 +310,19 @@
         const name = document.getElementById('menuName').value;
         const price = parseInt(document.getElementById('menuPrice').value);
         const category = document.getElementById('menuCategory').value;
-        const optText = document.getElementById('menuOptions').value;
-        const fileInput = document.getElementById('menuImageFile');
-
+        
+        // Gather Toppings
+        const toppingRows = document.querySelectorAll('.topping-row');
         let options = [];
-        if(optText.trim() !== "") {
-            options = optText.split(',').map(item => {
-                const p = item.split(':');
-                return { name: p[0].trim(), price: parseInt(p[1] || 0) };
-            });
-        }
+        toppingRows.forEach(row => {
+            const tName = row.querySelector('.topping-name').value.trim();
+            const tPrice = parseInt(row.querySelector('.topping-price').value || 0);
+            if(tName) options.push({ name: tName, price: tPrice });
+        });
 
+        const fileInput = document.getElementById('menuImageFile');
         let imageUrl = document.getElementById('previewImg').src;
+        
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
             const fileName = `menu_${Date.now()}`;
