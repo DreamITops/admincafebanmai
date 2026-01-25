@@ -36,6 +36,10 @@
         .img-preview-box { width: 120px; height: 120px; border: 2px dashed #ccc; border-radius: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; margin: 0 auto; background: #f9f9f9;}
         .img-preview-box img { width: 100%; height: 100%; object-fit: cover; }
 
+        /* Report Chart Bar */
+        .bar-container { height: 20px; background: #e9ecef; border-radius: 10px; overflow: hidden; margin-top: 5px; }
+        .bar-fill { height: 100%; background: #28a745; transition: width 0.5s; }
+
         @media(max-width: 992px) {
             .sidebar { display: none; }
             .main { margin-left: 0; padding: 15px; }
@@ -51,6 +55,7 @@
     </div>
     <div class="nav-item active" onclick="switchTab('dashboard', this)"><i class="fas fa-home"></i> <span class="nav-text">ออเดอร์ & ภาพรวม</span></div>
     <div class="nav-item" onclick="switchTab('menu', this)"><i class="fas fa-book"></i> <span class="nav-text">จัดการเมนูอาหาร</span></div>
+    <div class="nav-item" onclick="switchTab('report', this)"><i class="fas fa-chart-line"></i> <span class="nav-text">รายงานรายได้</span></div>
     <div class="nav-item mt-5 text-danger" onclick="location.reload()"><i class="fas fa-sync"></i> <span class="nav-text">รีเฟรชระบบ</span></div>
 </div>
 
@@ -83,6 +88,30 @@
                 <tbody id="menuTableBody"><tr><td colspan="6" class="text-center py-4">Loading...</td></tr></tbody>
             </table>
         </div></div>
+    </div>
+
+    <div id="view-report" class="d-none">
+        <h3 class="mb-4">📊 รายงานรายได้</h3>
+        <ul class="nav nav-tabs mb-3">
+            <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#dailyReport" onclick="renderReport('daily')">รายวัน</a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#monthlyReport" onclick="renderReport('monthly')">รายเดือน</a></li>
+        </ul>
+        
+        <div class="card p-3 mb-3 bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="text-muted mb-0">ยอดขายรวม (ที่เลือก)</h5>
+                    <h2 class="fw-bold text-success mb-0" id="reportTotalSales">0 ฿</h2>
+                </div>
+                <div class="text-end">
+                    <h5 class="text-muted mb-0">จำนวนออเดอร์</h5>
+                    <h3 class="fw-bold text-primary mb-0" id="reportTotalOrders">0</h3>
+                </div>
+            </div>
+        </div>
+
+        <div id="reportContent" class="table-responsive bg-white rounded shadow-sm p-3">
+            </div>
     </div>
 </div>
 
@@ -120,8 +149,7 @@
                         <label class="fw-bold">ตัวเลือกเสริม (Topping)</label>
                         <button type="button" class="btn btn-sm btn-outline-primary" onclick="addToppingInput()">+ เพิ่มตัวเลือก</button>
                     </div>
-                    <div id="toppingContainer" class="bg-light p-2 rounded" style="max-height: 200px; overflow-y: auto;">
-                        </div>
+                    <div id="toppingContainer" class="bg-light p-2 rounded" style="max-height: 200px; overflow-y: auto;"></div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -132,14 +160,39 @@
 </div>
 
 <div class="modal fade" id="billModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title fw-bold">จัดการโต๊ะ <span id="modalTableNo"></span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body">
-                <div id="billItemsDisplay" class="mb-3"></div>
-                <h3 class="text-end text-primary fw-bold" id="modalTotal">0 ฿</h3>
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold">จัดการโต๊ะ <span id="modalTableNo"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-footer"><button class="btn btn-success w-100 fw-bold" onclick="checkBin()">💰 รับเงิน / ปิดโต๊ะ</button></div>
+            <div class="modal-body">
+                <div class="card mb-3 border-primary">
+                    <div class="card-body p-2 d-flex gap-2 align-items-center bg-primary bg-opacity-10">
+                        <i class="fas fa-plus-circle text-primary"></i>
+                        <select id="quickAddMenu" class="form-select form-select-sm">
+                            <option value="">-- เลือกเมนูเพิ่ม (น้ำ/อาหาร) --</option>
+                        </select>
+                        <button class="btn btn-primary btn-sm text-nowrap" onclick="addItemToOrder()">เพิ่ม</button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="table-light"><tr><th>รายการ</th><th width="120">จำนวน</th><th class="text-end" width="100">รวม</th></tr></thead>
+                        <tbody id="billItemsDisplay"></tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                    <h5 class="text-muted">ยอดสุทธิ</h5>
+                    <h3 class="text-primary fw-bold" id="modalTotal">0 ฿</h3>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+                <button class="btn btn-success fw-bold px-4" onclick="checkBin()">💰 รับเงิน / ปิดโต๊ะ</button>
+            </div>
         </div>
     </div>
 </div>
@@ -153,6 +206,7 @@
     let allMenus = [];
     let currentOrders = [];
     let selectedOrder = null;
+    let allPaidOrders = []; // For Report
 
     // --- Init ---
     fetchOrders();
@@ -163,20 +217,24 @@
     function switchTab(view, btn) {
         document.getElementById('view-dashboard').classList.add('d-none');
         document.getElementById('view-menu').classList.add('d-none');
+        document.getElementById('view-report').classList.add('d-none');
+        
         document.getElementById('view-'+view).classList.remove('d-none');
+        
         if(btn && document.querySelector('.d-lg-block')) {
             document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
             btn.classList.add('active');
         }
+
         if(view === 'menu') fetchMenu();
         if(view === 'dashboard') fetchOrders();
+        if(view === 'report') renderReport('daily');
     }
 
     // --- Dashboard Logic ---
     async function fetchOrders() {
         const { data, error } = await db.from('orders').select('*').neq('status', 'paid').order('created_at', {ascending:false}); 
         if(error) { 
-            console.error("Fetch Error:", error); 
             if(error.code !== 'PGRST100') document.getElementById('orderGrid').innerHTML = `<div class="col-12 text-center text-danger py-5">Error: ${error.message}</div>`;
             return; 
         }
@@ -202,7 +260,7 @@
                     <div class="card p-3 mb-3 border-start border-4 border-${badge === 'bg-warning' ? 'warning' : (badge === 'bg-danger' ? 'danger' : 'success')}">
                         <div class="d-flex justify-content-between mb-2"><h5 class="m-0 fw-bold">โต๊ะ ${o.table_no}</h5><span class="badge ${badge}">${statusText}</span></div>
                         <div class="bg-light p-2 rounded mb-2 small" style="max-height:100px;overflow-y:auto">
-                            ${o.items.map(i=> `<div>- ${i.name} ${i.option?`(${i.option})`:''}</div>`).join('')}
+                            ${o.items.map(i=> `<div>- ${i.name} ${i.option?`(${i.option})`:''} <span class="text-muted">x${i.qty||1}</span></div>`).join('')}
                         </div>
                         <h5 class="text-end fw-bold text-primary">${o.total_price} ฿</h5>
                         ${btn}
@@ -214,14 +272,117 @@
 
     async function setStatus(id, st) { await db.from('orders').update({status:st}).eq('id', id); fetchOrders(); }
 
-    function openBill(id) {
-        selectedOrder = currentOrders.find(o=>o.id===id);
+    // --- Bill Management (Upgrade) ---
+    async function openBill(id) {
+        // Load latest order data
+        const { data } = await db.from('orders').select('*').eq('id', id).single();
+        selectedOrder = data;
+
+        // Ensure Menu is loaded for Quick Add
+        if(allMenus.length === 0) await fetchMenu();
+        
+        // Populate Quick Add Dropdown
+        const select = document.getElementById('quickAddMenu');
+        select.innerHTML = '<option value="">-- เลือกเมนูเพิ่ม (น้ำ/อาหาร) --</option>';
+        allMenus.forEach((m, idx) => {
+            select.innerHTML += `<option value="${idx}">${m.name} (${m.price}฿)</option>`;
+        });
+
         document.getElementById('modalTableNo').innerText = selectedOrder.table_no;
-        document.getElementById('modalTotal').innerText = selectedOrder.total_price + ' ฿';
-        document.getElementById('billItemsDisplay').innerHTML = selectedOrder.items.map(i=>
-            `<div class="d-flex justify-content-between border-bottom py-1"><span>${i.name} ${i.option?`(${i.option})`:''}</span><b>${i.price}</b></div>`
-        ).join('');
+        renderBillItems();
         new bootstrap.Modal(document.getElementById('billModal')).show();
+    }
+
+    function renderBillItems() {
+        const tbody = document.getElementById('billItemsDisplay');
+        tbody.innerHTML = '';
+        let total = 0;
+
+        selectedOrder.items.forEach((item, index) => {
+            const qty = item.qty || 1;
+            const itemTotal = item.price * qty;
+            total += itemTotal;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>
+                        <div>${item.name} <small class="text-primary">${item.option ? '('+item.option+')' : ''}</small></div>
+                        ${item.note ? `<small class="text-danger">*${item.note}</small>` : ''}
+                    </td>
+                    <td>
+                        <div class="input-group input-group-sm">
+                            <button class="btn btn-outline-secondary" onclick="adjustItem(${index}, -1)">-</button>
+                            <span class="form-control text-center px-0">${qty}</span>
+                            <button class="btn btn-outline-secondary" onclick="adjustItem(${index}, 1)">+</button>
+                        </div>
+                    </td>
+                    <td class="text-end fw-bold">${itemTotal}</td>
+                </tr>
+            `;
+        });
+
+        document.getElementById('modalTotal').innerText = total + " ฿";
+        selectedOrder.calculatedTotal = total; // Temporary storage
+    }
+
+    async function adjustItem(index, delta) {
+        const item = selectedOrder.items[index];
+        item.qty = (item.qty || 1) + delta;
+
+        if (item.qty <= 0) {
+            if(!confirm('ลบรายการนี้ออกจากบิล?')) {
+                item.qty = 1; // Revert
+                return;
+            }
+            selectedOrder.items.splice(index, 1);
+        }
+        
+        // Update DB
+        await saveOrderUpdate();
+    }
+
+    async function addItemToOrder() {
+        const select = document.getElementById('quickAddMenu');
+        const index = select.value;
+        if(index === "") return;
+
+        const menu = allMenus[index];
+        // Create new item object
+        const newItem = {
+            id: menu.id,
+            name: menu.name,
+            price: menu.price,
+            qty: 1,
+            option: '', // Default no option for quick add
+            note: ''
+        };
+
+        // Check if same item exists (optional, but good for grouping)
+        const existing = selectedOrder.items.find(i => i.id === newItem.id && !i.option);
+        if(existing) {
+            existing.qty = (existing.qty || 1) + 1;
+        } else {
+            selectedOrder.items.push(newItem);
+        }
+
+        await saveOrderUpdate();
+        select.value = ""; // Reset dropdown
+    }
+
+    async function saveOrderUpdate() {
+        // Recalculate Total
+        const newTotal = selectedOrder.items.reduce((sum, i) => sum + (i.price * (i.qty || 1)), 0);
+        
+        await db.from('orders').update({
+            items: selectedOrder.items,
+            total_price: newTotal
+        }).eq('id', selectedOrder.id);
+
+        // Fetch latest to ensure sync
+        const { data } = await db.from('orders').select('*').eq('id', selectedOrder.id).single();
+        selectedOrder = data;
+        renderBillItems();
+        fetchOrders(); // Update background dashboard
     }
 
     async function checkBin() {
@@ -259,7 +420,7 @@
         const div = document.createElement('div');
         div.className = 'input-group mb-2 topping-row';
         div.innerHTML = `
-            <input type="text" class="form-control topping-name" placeholder="ชื่อตัวเลือก (เช่น ร้อน)" value="${name}">
+            <input type="text" class="form-control topping-name" placeholder="ชื่อ (เช่น ร้อน)" value="${name}">
             <input type="number" class="form-control topping-price" placeholder="ราคาเพิ่ม" value="${price}">
             <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
         `;
@@ -271,8 +432,7 @@
         document.getElementById('menuForm').reset();
         document.getElementById('editMenuId').value = "";
         document.getElementById('previewImg').src = "https://via.placeholder.com/150?text=Upload";
-        document.getElementById('toppingContainer').innerHTML = ''; // Clear toppings
-        // Default topping input
+        document.getElementById('toppingContainer').innerHTML = '';
         addToppingInput(); 
         new bootstrap.Modal(document.getElementById('menuModal')).show();
     }
@@ -287,13 +447,12 @@
         document.getElementById('menuCategory').value = menu.category || 'อาหาร';
         document.getElementById('previewImg').src = menu.image_url || "https://via.placeholder.com/150";
         
-        // Populate Toppings
         const container = document.getElementById('toppingContainer');
         container.innerHTML = '';
         if(menu.options && Array.isArray(menu.options) && menu.options.length > 0) {
             menu.options.forEach(opt => addToppingInput(opt.name, opt.price));
         } else {
-            addToppingInput(); // Empty row if none
+            addToppingInput();
         }
         
         new bootstrap.Modal(document.getElementById('menuModal')).show();
@@ -311,7 +470,6 @@
         const price = parseInt(document.getElementById('menuPrice').value);
         const category = document.getElementById('menuCategory').value;
         
-        // Gather Toppings
         const toppingRows = document.querySelectorAll('.topping-row');
         let options = [];
         toppingRows.forEach(row => {
@@ -327,7 +485,7 @@
             const file = fileInput.files[0];
             const fileName = `menu_${Date.now()}`;
             const { error } = await db.storage.from('menu_images').upload(fileName, file);
-            if (error) { Swal.fire('Error', 'กรุณาสร้าง Bucket "menu_images" และเปิด Public ก่อนครับ', 'error'); return; }
+            if (error) { Swal.fire('Error', 'ต้องสร้าง Bucket menu_images ก่อน', 'error'); return; }
             const { data } = db.storage.from('menu_images').getPublicUrl(fileName);
             imageUrl = data.publicUrl;
         }
@@ -348,6 +506,66 @@
     async function deleteMenu(id) {
         if(confirm('ลบเมนูนี้?')) { await db.from('menu_items').delete().eq('id', id); fetchMenu(); }
     }
+
+    // --- Report Logic (New) ---
+    async function renderReport(mode) {
+        const tbody = document.getElementById('reportContent');
+        tbody.innerHTML = '<div class="text-center py-5">Loading...</div>';
+
+        // Fetch ALL paid orders
+        const { data } = await db.from('orders').select('*').eq('status', 'paid').order('created_at', {ascending: true});
+        allPaidOrders = data || [];
+
+        let summary = {};
+        let totalSales = 0;
+        let totalOrders = 0;
+
+        allPaidOrders.forEach(o => {
+            const date = new Date(o.created_at);
+            let key;
+            if(mode === 'daily') key = date.toLocaleDateString('th-TH'); // 25/1/2569
+            else key = date.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' }); // มกราคม 2569
+
+            if(!summary[key]) summary[key] = { sales: 0, count: 0 };
+            summary[key].sales += o.total_price;
+            summary[key].count += 1;
+            totalSales += o.total_price;
+            totalOrders += 1;
+        });
+
+        // Update Header Stats
+        document.getElementById('reportTotalSales').innerText = totalSales.toLocaleString() + ' ฿';
+        document.getElementById('reportTotalOrders').innerText = totalOrders.toLocaleString();
+
+        // Render Table
+        let html = `<table class="table table-bordered table-striped">
+            <thead class="table-dark"><tr><th>วันที่ / เดือน</th><th class="text-end">ยอดขาย</th><th class="text-center">ออเดอร์</th><th class="text-center">กราฟ</th></tr></thead><tbody>`;
+
+        if(Object.keys(summary).length === 0) {
+            html += `<tr><td colspan="4" class="text-center text-muted">ไม่พบข้อมูลยอดขาย</td></tr>`;
+        } else {
+            // Find max sales for bar chart scale
+            const maxSales = Math.max(...Object.values(summary).map(s => s.sales));
+
+            for (const [key, val] of Object.entries(summary)) {
+                const percent = (val.sales / maxSales) * 100;
+                html += `
+                    <tr>
+                        <td>${key}</td>
+                        <td class="text-end fw-bold text-success">${val.sales.toLocaleString()}</td>
+                        <td class="text-center">${val.count}</td>
+                        <td width="30%">
+                            <div class="bar-container" title="${percent.toFixed(1)}%">
+                                <div class="bar-fill" style="width: ${percent}%"></div>
+                            </div>
+                        </td>
+                    </tr>`;
+            }
+        }
+        html += '</tbody></table>';
+        tbody.innerHTML = html;
+    }
+
 </script>
 </body>
 </html>
