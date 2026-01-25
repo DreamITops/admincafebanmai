@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restaurant Pro - Admin (Upgrade)</title>
+    <title>Restaurant Pro - Admin</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -11,53 +11,58 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <style>
-        body { background: #eef2f7; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .sidebar { width: 260px; height: 100vh; background: #2c3e50; color: white; position: fixed; padding: 20px; z-index: 100; overflow-y: auto; }
+        body { background: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .sidebar { width: 260px; height: 100vh; background: #2c3e50; color: white; position: fixed; padding: 20px; z-index: 100; }
         .main { margin-left: 260px; padding: 30px; }
-        .nav-item { padding: 12px 15px; margin-bottom: 5px; cursor: pointer; border-radius: 8px; color: #b0b8c1; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
-        .nav-item:hover, .nav-item.active { background: #34495e; color: white; }
+        .nav-item { padding: 12px; margin-bottom: 5px; cursor: pointer; border-radius: 8px; color: #ccc; display: flex; align-items: center; gap: 10px; }
+        .nav-item:hover, .nav-item.active { background: #34495e; color: white; font-weight: bold; }
         
-        /* Image Preview */
-        .img-preview-container { width: 100px; height: 100px; border-radius: 10px; overflow: hidden; background: #ddd; position: relative; border: 2px dashed #999; display: flex; align-items: center; justify-content: center; cursor: pointer;}
-        .img-preview-container img { width: 100%; height: 100%; object-fit: cover; }
+        .img-preview-box { width: 120px; height: 120px; border: 2px dashed #ccc; border-radius: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; margin: 0 auto; background: #f9f9f9;}
+        .img-preview-box img { width: 100%; height: 100%; object-fit: cover; }
         
         @media(max-width: 992px) {
-            .sidebar { transform: translateX(-100%); transition: 0.3s; }
-            .main { margin-left: 0; }
-            .show-sidebar .sidebar { transform: translateX(0); }
+            .sidebar { display: none; } /* ซ่อน Sidebar บนมือถือเพื่อความง่าย */
+            .main { margin-left: 0; padding: 15px; }
         }
     </style>
 </head>
 <body>
 
-<div class="sidebar" id="sidebar">
-    <h4 class="mb-4 ps-2 fw-bold text-warning"><i class="fas fa-utensils"></i> RestoPro</h4>
-    <div class="nav-item active" onclick="switchTab('dashboard', this)"><i class="fas fa-th-large"></i> ภาพรวมร้าน</div>
-    <div class="nav-item" onclick="switchTab('menu', this)"><i class="fas fa-book-open"></i> จัดการเมนู</div>
+<div class="sidebar d-none d-lg-block">
+    <h4 class="mb-4 ps-2 text-warning"><i class="fas fa-utensils"></i> CAFE BANMAI</h4>
+    <div class="nav-item active" onclick="switchTab('dashboard', this)"><i class="fas fa-home"></i> ออเดอร์ & ภาพรวม</div>
+    <div class="nav-item" onclick="switchTab('menu', this)"><i class="fas fa-book"></i> จัดการเมนูอาหาร</div>
     <div class="nav-item mt-5 text-danger" onclick="location.reload()"><i class="fas fa-sync"></i> รีเฟรชระบบ</div>
 </div>
 
 <div class="main">
-    <button class="btn btn-dark d-lg-none mb-3" onclick="document.body.classList.toggle('show-sidebar')"><i class="fas fa-bars"></i> เมนู</button>
+    <div class="d-lg-none mb-3 d-flex justify-content-between">
+        <h4 class="fw-bold">Admin Pro</h4>
+        <div>
+            <button class="btn btn-outline-dark btn-sm me-1" onclick="switchTab('dashboard')">ออเดอร์</button>
+            <button class="btn btn-outline-dark btn-sm" onclick="switchTab('menu')">เมนู</button>
+        </div>
+    </div>
 
     <div id="view-dashboard">
         <div class="row mb-4">
-            <div class="col-md-6"><div class="card p-3 shadow-sm border-start border-4 border-primary"><h3><i class="fas fa-chair"></i> <span id="activeTables">0</span> โต๊ะ</h3></div></div>
-            <div class="col-md-6"><div class="card p-3 shadow-sm border-start border-4 border-success"><h3><i class="fas fa-coins"></i> <span id="pendingSales">0</span> ฿ (รอเก็บ)</h3></div></div>
+            <div class="col-6"><div class="card p-3 border-start border-4 border-primary"><h3><i class="fas fa-chair"></i> <span id="activeTables">0</span></h3><small>โต๊ะเปิดอยู่</small></div></div>
+            <div class="col-6"><div class="card p-3 border-start border-4 border-success"><h3><i class="fas fa-coins"></i> <span id="pendingSales">0</span></h3><small>ยอดรอเก็บ</small></div></div>
         </div>
-        <h5 class="fw-bold"><i class="fas fa-clipboard-list"></i> ออเดอร์ปัจจุบัน</h5>
+        
+        <h5 class="fw-bold"><i class="fas fa-list"></i> รายการออเดอร์</h5>
         <div class="row" id="orderGrid"><div class="col-12 text-center py-5">Loading...</div></div>
     </div>
 
     <div id="view-menu" class="d-none">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="fw-bold"><i class="fas fa-hamburger"></i> จัดการเมนูอาหาร</h3>
-            <button class="btn btn-primary" onclick="openMenuModal()"><i class="fas fa-plus"></i> เพิ่มเมนูใหม่</button>
+            <h3>จัดการเมนู</h3>
+            <button class="btn btn-primary" onclick="openMenuModal()">+ เพิ่มเมนู</button>
         </div>
-        <div class="card shadow-sm"><div class="card-body p-0 table-responsive">
+        <div class="card"><div class="card-body p-0 table-responsive">
             <table class="table table-hover mb-0 align-middle">
-                <thead class="table-light"><tr><th>รูป</th><th>ชื่อเมนู</th><th>ราคา</th><th>หมวด</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
-                <tbody id="menuTableBody"><tr><td colspan="6" class="text-center py-4">กำลังโหลด...</td></tr></tbody>
+                <thead class="table-light"><tr><th>รูป</th><th>ชื่อ</th><th>ราคา</th><th>หมวด</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+                <tbody id="menuTableBody"><tr><td colspan="6" class="text-center py-4">Loading...</td></tr></tbody>
             </table>
         </div></div>
     </div>
@@ -67,30 +72,23 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold" id="modalTitle">เพิ่มเมนูใหม่</h5>
+                <h5 class="modal-title" id="modalTitle">เพิ่มเมนู</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <form id="menuForm">
-                    <input type="hidden" id="editMenuId"> <div class="d-flex justify-content-center mb-3">
-                        <label class="img-preview-container" for="menuImageFile">
-                            <img id="previewImg" src="https://via.placeholder.com/100?text=Upload" alt="Preview">
+                    <input type="hidden" id="editMenuId">
+                    <div class="mb-3 text-center">
+                        <label class="img-preview-box" for="menuImageFile">
+                            <img id="previewImg" src="https://via.placeholder.com/150?text=Upload" alt="Preview">
                             <input type="file" id="menuImageFile" accept="image/*" hidden onchange="previewImage(event)">
                         </label>
+                        <small class="text-muted">แตะที่รูปเพื่ออัปโหลด</small>
                     </div>
-                    <p class="text-center small text-muted">คลิกที่รูปเพื่อเปลี่ยนภาพ</p>
-
-                    <div class="mb-2">
-                        <label>ชื่อเมนู</label>
-                        <input type="text" id="menuName" class="form-control" required>
-                    </div>
+                    <input type="text" id="menuName" class="form-control mb-2" placeholder="ชื่อเมนู" required>
                     <div class="row mb-2">
+                        <div class="col-6"><input type="number" id="menuPrice" class="form-control" placeholder="ราคา" required></div>
                         <div class="col-6">
-                            <label>ราคา (บาท)</label>
-                            <input type="number" id="menuPrice" class="form-control" required>
-                        </div>
-                        <div class="col-6">
-                            <label>หมวดหมู่</label>
                             <select id="menuCategory" class="form-select">
                                 <option value="อาหาร">อาหาร</option>
                                 <option value="เครื่องดื่ม">เครื่องดื่ม</option>
@@ -98,17 +96,12 @@
                             </select>
                         </div>
                     </div>
-                    
-                    <div class="mb-2">
-                        <label>Options / Toppings (ตัวเลือกเสริม)</label>
-                        <textarea id="menuOptions" class="form-control" rows="3" placeholder="ตัวอย่าง: ร้อน:0, เย็น:5, ปั่น:10"></textarea>
-                        <small class="text-muted">พิมพ์รูปแบบ: <code>ชื่อ:ราคาเพิ่ม, ชื่อ:ราคาเพิ่ม</code></small>
-                    </div>
+                    <label>ตัวเลือก (Topping)</label>
+                    <textarea id="menuOptions" class="form-control" rows="2" placeholder="เช่น ร้อน:0, เย็น:5"></textarea>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                <button type="button" class="btn btn-primary" onclick="saveMenu()">บันทึกข้อมูล</button>
+                <button type="button" class="btn btn-primary w-100" onclick="saveMenu()">บันทึก</button>
             </div>
         </div>
     </div>
@@ -117,17 +110,12 @@
 <div class="modal fade" id="billModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">โต๊ะ <span id="modalTableNo"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
+            <div class="modal-header"><h5 class="modal-title fw-bold">จัดการโต๊ะ <span id="modalTableNo"></span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <div id="billItemsDisplay" class="mb-3"></div>
-                <h4 class="text-end text-primary fw-bold" id="modalTotal">0 ฿</h4>
+                <h3 class="text-end text-primary fw-bold" id="modalTotal">0 ฿</h3>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-success w-100 fw-bold" onclick="checkBin()">💰 รับเงิน / ปิดโต๊ะ</button>
-            </div>
+            <div class="modal-footer"><button class="btn btn-success w-100 fw-bold" onclick="checkBin()">💰 รับเงิน / ปิดโต๊ะ</button></div>
         </div>
     </div>
 </div>
@@ -142,48 +130,54 @@
     let currentOrders = [];
     let selectedOrder = null;
 
-    // --- Init ---
+    // --- Start ---
     fetchOrders();
-    db.channel('admin-upd').on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchOrders()).subscribe();
+    // Realtime Listener
+    db.channel('admin-chan').on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchOrders()).subscribe();
 
     function switchTab(view, btn) {
         document.getElementById('view-dashboard').classList.add('d-none');
         document.getElementById('view-menu').classList.add('d-none');
         document.getElementById('view-'+view).classList.remove('d-none');
-        document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
-        if(btn) btn.classList.add('active');
+        if(btn && document.querySelector('.d-lg-block')) {
+            document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+            btn.classList.add('active');
+        }
         if(view === 'menu') fetchMenu();
         if(view === 'dashboard') fetchOrders();
     }
 
-    // ================= DASHBOARD =================
+    // --- Dashboard Logic ---
     async function fetchOrders() {
-        const { data } = await db.from('orders').select('*').neq('status', 'paid').order('updated_at', {ascending:false});
+        const { data, error } = await db.from('orders').select('*').neq('status', 'paid').order('updated_at', {ascending:false});
+        if(error) { console.error(error); return; }
+        
         currentOrders = data || [];
         renderDashboard();
     }
-    
+
     function renderDashboard() {
         const grid = document.getElementById('orderGrid');
         grid.innerHTML = '';
         document.getElementById('activeTables').innerText = currentOrders.length;
         document.getElementById('pendingSales').innerText = currentOrders.reduce((a,b)=>a+b.total_price,0).toLocaleString();
 
-        if(currentOrders.length === 0) { grid.innerHTML = '<div class="col-12 text-center text-muted py-5">ไม่มีออเดอร์</div>'; return; }
+        if(currentOrders.length === 0) { grid.innerHTML = '<div class="col-12 text-center text-muted py-5">ยังไม่มีออเดอร์</div>'; return; }
 
         currentOrders.forEach(o => {
-            let statusBadge = o.status==='pending' ? '<span class="badge bg-warning text-dark">รอทำ</span>' : (o.status==='cooking'?'<span class="badge bg-danger">กำลังปรุง</span>':'<span class="badge bg-success">เสิร์ฟแล้ว</span>');
-            let btnAction = o.status==='pending' ? `<button class="btn btn-outline-warning w-100 btn-sm mb-2" onclick="setStatus(${o.id},'cooking')">🔥 ปรุง</button>` : (o.status==='cooking' ? `<button class="btn btn-success w-100 btn-sm mb-2" onclick="setStatus(${o.id},'served')">✅ เสิร์ฟ</button>` : '');
+            let badge = o.status==='pending' ? 'bg-warning' : (o.status==='cooking'?'bg-danger':'bg-success');
+            let statusText = o.status==='pending' ? 'รอทำ' : (o.status==='cooking'?'กำลังทำ':'เสิร์ฟแล้ว');
+            let btn = o.status==='pending' ? `<button class="btn btn-outline-warning w-100 btn-sm mb-2" onclick="setStatus(${o.id},'cooking')">🔥 ปรุง</button>` : (o.status==='cooking' ? `<button class="btn btn-success w-100 btn-sm mb-2" onclick="setStatus(${o.id},'served')">✅ เสิร์ฟ</button>` : '');
             
             grid.innerHTML += `
                 <div class="col-md-6 col-lg-4 col-xl-3">
-                    <div class="card p-3 mb-3 shadow-sm border-0 border-start border-4 ${o.status === 'cooking' ? 'border-danger' : 'border-warning'}">
-                        <div class="d-flex justify-content-between mb-2"><h5 class="m-0 fw-bold">โต๊ะ ${o.table_no}</h5>${statusBadge}</div>
+                    <div class="card p-3 mb-3 border-start border-4 border-${badge === 'bg-warning' ? 'warning' : (badge === 'bg-danger' ? 'danger' : 'success')}">
+                        <div class="d-flex justify-content-between mb-2"><h5 class="m-0 fw-bold">โต๊ะ ${o.table_no}</h5><span class="badge ${badge}">${statusText}</span></div>
                         <div class="bg-light p-2 rounded mb-2 small" style="max-height:100px;overflow-y:auto">
-                            ${o.items.map(i=> `<div>${i.name} ${i.option?`(${i.option})`:''}</div>`).join('')}
+                            ${o.items.map(i=> `<div>- ${i.name} ${i.option?`(${i.option})`:''}</div>`).join('')}
                         </div>
-                        <h5 class="text-primary text-end fw-bold">${o.total_price} ฿</h5>
-                        ${btnAction}
+                        <h5 class="text-end fw-bold text-primary">${o.total_price} ฿</h5>
+                        ${btn}
                         <button class="btn btn-dark w-100 btn-sm" onclick="openBill(${o.id})">จัดการบิล</button>
                     </div>
                 </div>`;
@@ -197,21 +191,19 @@
         document.getElementById('modalTableNo').innerText = selectedOrder.table_no;
         document.getElementById('modalTotal').innerText = selectedOrder.total_price + ' ฿';
         document.getElementById('billItemsDisplay').innerHTML = selectedOrder.items.map(i=>
-            `<div class="d-flex justify-content-between border-bottom py-1"><span>${i.name} ${i.option?`(${i.option})`:''} ${i.note?`<small class="text-danger">*${i.note}</small>`:''}</span><b>${i.price}</b></div>`
+            `<div class="d-flex justify-content-between border-bottom py-1"><span>${i.name} ${i.option?`(${i.option})`:''}</span><b>${i.price}</b></div>`
         ).join('');
         new bootstrap.Modal(document.getElementById('billModal')).show();
     }
 
     async function checkBin() {
-        if(confirm('ปิดโต๊ะ รับเงิน?')) {
+        if(confirm('ปิดโต๊ะ รับเงินเรียบร้อย?')) {
             await db.from('orders').update({status:'paid'}).eq('id', selectedOrder.id);
             bootstrap.Modal.getInstance(document.getElementById('billModal')).hide();
-            fetchOrders();
         }
     }
 
-    // ================= MENU MANAGER (UPGRADED) =================
-
+    // --- Menu Logic ---
     async function fetchMenu() {
         const { data } = await db.from('menu_items').select('*').order('id');
         allMenus = data || [];
@@ -223,119 +215,89 @@
                     <td><img src="${m.image_url || 'https://via.placeholder.com/50'}" width="50" height="50" style="object-fit:cover; border-radius:5px;"></td>
                     <td>${m.name}</td>
                     <td>${m.price}</td>
-                    <td><span class="badge bg-secondary">${m.category}</span></td>
+                    <td>${m.category}</td>
                     <td>${m.is_available ? '<span class="text-success">ขาย</span>' : '<span class="text-danger">หมด</span>'}</td>
                     <td>
                         <button class="btn btn-sm btn-outline-primary" onclick="editMenu(${m.id})"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-sm btn-outline-warning" onclick="toggleMenu(${m.id}, ${!m.is_available})"><i class="fas fa-power-off"></i></button>
                         <button class="btn btn-sm btn-outline-danger" onclick="deleteMenu(${m.id})"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;
         });
     }
 
-    // --- Add/Edit Logic ---
     function openMenuModal() {
-        // Reset Form for "Add New"
         document.getElementById('modalTitle').innerText = "เพิ่มเมนูใหม่";
         document.getElementById('menuForm').reset();
-        document.getElementById('editMenuId').value = ""; // No ID = Add mode
-        document.getElementById('previewImg').src = "https://via.placeholder.com/100?text=Upload";
+        document.getElementById('editMenuId').value = "";
+        document.getElementById('previewImg').src = "https://via.placeholder.com/150?text=Upload";
         new bootstrap.Modal(document.getElementById('menuModal')).show();
     }
 
     function editMenu(id) {
         const menu = allMenus.find(m => m.id === id);
         if(!menu) return;
-
-        // Populate Form for "Edit"
-        document.getElementById('modalTitle').innerText = "แก้ไขเมนู: " + menu.name;
+        document.getElementById('modalTitle').innerText = "แก้ไขเมนู";
         document.getElementById('editMenuId').value = menu.id;
         document.getElementById('menuName').value = menu.name;
         document.getElementById('menuPrice').value = menu.price;
         document.getElementById('menuCategory').value = menu.category || 'อาหาร';
+        document.getElementById('previewImg').src = menu.image_url || "https://via.placeholder.com/150";
         
-        // รูปภาพ
-        document.getElementById('previewImg').src = menu.image_url || "https://via.placeholder.com/100?text=No+Img";
-
-        // แปลง JSON Options กลับเป็น String (เพื่อให้ Admin แก้ได้ง่ายๆ)
-        // Format: [{"name":"ร้อน","price":0}] -> "ร้อน:0"
-        let optionStr = "";
-        if(menu.options && Array.isArray(menu.options)) {
-            optionStr = menu.options.map(o => `${o.name}:${o.price}`).join(', ');
-        }
-        document.getElementById('menuOptions').value = optionStr;
-
+        let optStr = "";
+        if(menu.options && Array.isArray(menu.options)) optStr = menu.options.map(o => `${o.name}:${o.price}`).join(', ');
+        document.getElementById('menuOptions').value = optStr;
+        
         new bootstrap.Modal(document.getElementById('menuModal')).show();
     }
 
     function previewImage(event) {
         const file = event.target.files[0];
-        if(file) {
-            document.getElementById('previewImg').src = URL.createObjectURL(file);
-        }
+        if(file) document.getElementById('previewImg').src = URL.createObjectURL(file);
     }
 
     async function saveMenu() {
+        Swal.fire({title: 'กำลังบันทึก...', didOpen: ()=>Swal.showLoading()});
         const id = document.getElementById('editMenuId').value;
         const name = document.getElementById('menuName').value;
         const price = parseInt(document.getElementById('menuPrice').value);
         const category = document.getElementById('menuCategory').value;
-        const optionText = document.getElementById('menuOptions').value;
+        const optText = document.getElementById('menuOptions').value;
         const fileInput = document.getElementById('menuImageFile');
 
-        // 1. แปลง Option String กลับเป็น JSON
         let options = [];
-        if(optionText.trim() !== "") {
-            options = optionText.split(',').map(item => {
-                const [n, p] = item.split(':');
-                return { name: n.trim(), price: parseInt(p || 0) };
+        if(optText.trim() !== "") {
+            options = optText.split(',').map(item => {
+                const p = item.split(':');
+                return { name: p[0].trim(), price: parseInt(p[1] || 0) };
             });
         }
 
-        // 2. จัดการรูปภาพ (ถ้ามีการอัปโหลดใหม่)
-        let imageUrl = document.getElementById('previewImg').src; // ใช้รูปเดิมเป็นค่าเริ่มต้น
-        
+        let imageUrl = document.getElementById('previewImg').src;
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
-            const fileName = `menu_${Date.now()}_${file.name}`; // ตั้งชื่อไฟล์ไม่ให้ซ้ำ
-            
-            // Upload to Supabase Storage
-            const { data, error } = await db.storage.from('menu_images').upload(fileName, file);
-            
-            if (error) {
-                return Swal.fire('Upload Error', 'ต้องสร้าง Bucket ชื่อ menu_images และเปิด Public ก่อนครับ', 'error');
-            }
-            
-            // Get Public URL
-            const { data: urlData } = db.storage.from('menu_images').getPublicUrl(fileName);
-            imageUrl = urlData.publicUrl;
+            const fileName = `menu_${Date.now()}`;
+            const { error } = await db.storage.from('menu_images').upload(fileName, file);
+            if (error) { Swal.fire('Error', 'ต้องสร้าง Bucket "menu_images" ก่อน', 'error'); return; }
+            const { data } = db.storage.from('menu_images').getPublicUrl(fileName);
+            imageUrl = data.publicUrl;
         }
 
         const payload = { name, price, category, options, image_url: imageUrl };
+        let err;
+        if(id) { const res = await db.from('menu_items').update(payload).eq('id', id); err = res.error; }
+        else { const res = await db.from('menu_items').insert([payload]); err = res.error; }
 
-        let error;
-        if(id) {
-            // UPDATE
-            const res = await db.from('menu_items').update(payload).eq('id', id);
-            error = res.error;
-        } else {
-            // INSERT
-            const res = await db.from('menu_items').insert([payload]);
-            error = res.error;
-        }
-
-        if(error) Swal.fire('Error', error.message, 'error');
+        if(err) Swal.fire('Error', err.message, 'error');
         else {
             bootstrap.Modal.getInstance(document.getElementById('menuModal')).hide();
-            Swal.fire('สำเร็จ', 'บันทึกข้อมูลเรียบร้อย', 'success');
+            Swal.fire('สำเร็จ', 'บันทึกแล้ว', 'success');
             fetchMenu();
         }
     }
 
-    async function toggleMenu(id, st) { await db.from('menu_items').update({is_available:st}).eq('id', id); fetchMenu(); }
-    async function deleteMenu(id) { if(confirm('ลบเมนูนี้?')) { await db.from('menu_items').delete().eq('id', id); fetchMenu(); } }
-
+    async function deleteMenu(id) {
+        if(confirm('ลบเมนูนี้?')) { await db.from('menu_items').delete().eq('id', id); fetchMenu(); }
+    }
 </script>
 </body>
 </html>
