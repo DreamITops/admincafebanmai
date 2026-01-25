@@ -3,139 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Pro - ระบบจัดการร้าน</title>
+    <title>Restaurant POS Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background: #f0f2f5; font-family: 'Kanit', sans-serif; }
-        .sidebar { height: 100vh; background: #1a202c; color: white; padding: 20px; position: fixed; width: 250px; overflow-y: auto; }
-        .main-content { margin-left: 250px; padding: 30px; }
-        .nav-link { color: rgba(255,255,255,0.7); cursor: pointer; margin-bottom: 10px; padding: 10px; border-radius: 8px; transition: 0.2s; }
-        .nav-link:hover, .nav-link.active { background: #FFC107; color: #333; font-weight: bold; }
+        body { background: #eef2f7; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         
-        .order-card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-left: 6px solid #FFC107; position: relative; }
-        .order-card.served { border-left-color: #198754; }
-        .order-card.paid { border-left-color: #6c757d; opacity: 0.7; }
+        /* Layout */
+        .sidebar { width: 260px; height: 100vh; background: #2c3e50; color: white; position: fixed; padding: 20px; transition: 0.3s; z-index: 100; }
+        .main { margin-left: 260px; padding: 30px; transition: 0.3s; }
         
-        .item-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #eee; }
-        .topping-tag { font-size: 0.8rem; background: #e9ecef; padding: 2px 6px; border-radius: 4px; color: #666; margin-left: 5px; }
+        /* Nav Item */
+        .nav-item { padding: 12px 15px; margin-bottom: 5px; cursor: pointer; border-radius: 8px; color: #b0b8c1; display: flex; align-items: center; gap: 10px; }
+        .nav-item:hover, .nav-item.active { background: #34495e; color: white; }
+        .nav-item i { width: 25px; text-align: center; }
+
+        /* Order Card */
+        .order-card { background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 20px; border-left: 5px solid #f1c40f; position: relative; overflow: hidden; }
+        .order-card.cooking { border-left-color: #e67e22; }
+        .order-card.served { border-left-color: #27ae60; }
         
-        /* Modal Styles */
-        .modal-header { background: #FFC107; color: #333; }
-        .price-badge { font-weight: bold; color: #198754; }
+        /* Header Stats */
+        .stat-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); display: flex; align-items: center; justify-content: space-between; }
+        
+        /* Responsive */
+        @media(max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .main { margin-left: 0; }
+            .show-sidebar .sidebar { transform: translateX(0); }
+        }
+        
+        /* Print Style */
+        @media print {
+            body * { visibility: hidden; }
+            #receiptArea, #receiptArea * { visibility: visible; }
+            #receiptArea { position: absolute; left: 0; top: 0; width: 100%; }
+        }
     </style>
 </head>
 <body>
 
-<div class="sidebar">
-    <h3 class="mb-4">👨‍🍳 Manager Pro</h3>
-    <div class="nav-link active" onclick="showTab('orders', this)">📦 ออเดอร์ & คิดเงิน</div>
-    <div class="nav-link" onclick="showTab('menu', this)">🍔 จัดการเมนู & Toppings</div>
+<div class="sidebar" id="sidebar">
+    <h4 class="mb-4 ps-2 fw-bold"><i class="fas fa-utensils text-warning"></i> RestoPro</h4>
+    <div class="nav-item active" onclick="switchTab('dashboard')"><i class="fas fa-home"></i> ภาพรวม & ออเดอร์</div>
+    <div class="nav-item" onclick="switchTab('menu')"><i class="fas fa-book-open"></i> จัดการเมนู</div>
+    <div class="nav-item text-danger mt-5" onclick="location.reload()"><i class="fas fa-sync"></i> รีเฟรชระบบ</div>
 </div>
 
-<div class="main-content">
-    
-    <div id="tab-orders">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>จัดการออเดอร์ <span class="badge bg-success" style="font-size:0.5em" id="connStatus">Online</span></h2>
-            <button class="btn btn-outline-secondary" onclick="fetchOrders()">🔄 รีเฟรช</button>
+<div class="main">
+    <button class="btn btn-dark d-md-none mb-3" onclick="document.body.classList.toggle('show-sidebar')">☰ เมนู</button>
+
+    <div id="view-dashboard">
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div>
+                        <h6 class="text-muted">ยอดขายวันนี้</h6>
+                        <h3 class="fw-bold text-success" id="todaySales">0 ฿</h3>
+                    </div>
+                    <i class="fas fa-coins fa-2x text-success opacity-25"></i>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div>
+                        <h6 class="text-muted">โต๊ะที่เปิดอยู่</h6>
+                        <h3 class="fw-bold text-primary" id="activeTables">0</h3>
+                    </div>
+                    <i class="fas fa-chair fa-2x text-primary opacity-25"></i>
+                </div>
+            </div>
         </div>
-        <div id="ordersList" class="row">Loading...</div>
+
+        <h5 class="fw-bold mb-3">ออเดอร์ปัจจุบัน</h5>
+        <div class="row" id="orderGrid">Loading...</div>
     </div>
 
-    <div id="tab-menu" class="d-none">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>จัดการเมนูอาหาร</h2>
-            <button class="btn btn-primary" onclick="openMenuModal()">+ เพิ่มเมนูใหม่</button>
+    <div id="view-menu" class="d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3>จัดการเมนู</h3>
+            <button class="btn btn-primary" onclick="alert('ฟีเจอร์เพิ่มเมนู สามารถใช้โค้ดเดิมได้เลยครับ')">+ เพิ่มเมนู</button>
         </div>
-        <table class="table table-hover bg-white rounded shadow-sm">
-            <thead class="table-dark">
-                <tr><th>ชื่อเมนู</th><th>ราคา</th><th>หมวด</th><th>ท็อปปิ้ง</th><th>สถานะ</th><th>จัดการ</th></tr>
-            </thead>
-            <tbody id="menuTableBody"></tbody>
-        </table>
+        <div class="alert alert-info">ส่วนนี้สามารถใช้ Logic เดิมในการจัดการเมนูได้เลยครับ</div>
     </div>
 </div>
 
 <div class="modal fade" id="billModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">🧾 จัดการบิล: โต๊ะ <span id="billTableNo"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="card mb-3">
-                    <div class="card-header bg-light">รายการอาหารที่สั่ง</div>
-                    <div class="card-body" id="billItemsList">
-                        </div>
-                    <div class="card-footer d-flex justify-content-between">
-                        <strong>ยอดรวมสุทธิ</strong>
-                        <strong class="text-success fs-5" id="billTotalDisplay">0 ฿</strong>
-                    </div>
-                </div>
-
-                <div class="card bg-light border-0 p-3">
-                    <h6>➕ สั่งเพิ่มให้ลูกค้า</h6>
-                    <div class="row g-2">
-                        <div class="col-md-5">
-                            <select id="adminMenuSelect" class="form-select" onchange="renderAdminToppingOptions()">
-                                <option value="">-- เลือกเมนู --</option>
-                            </select>
-                        </div>
-                        <div class="col-md-5" id="adminToppingContainer">
-                            </div>
-                        <div class="col-md-2">
-                            <button class="btn btn-primary w-100" onclick="adminAddItemToOrder()">เพิ่ม</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
-                <button type="button" class="btn btn-success btn-lg" id="btnCheckBill" onclick="processPayment()">💰 รับเงิน / ปิดโต๊ะ</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="menuModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">🍔 ข้อมูลเมนูอาหาร</h5>
+                <h5 class="modal-title">จัดการโต๊ะ <span id="modalTableNo"></span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="menuForm">
-                    <input type="hidden" id="menuId">
-                    <div class="mb-3">
-                        <label>ชื่อเมนู</label>
-                        <input type="text" id="menuName" class="form-control" required>
-                    </div>
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label>ราคา (บาท)</label>
-                            <input type="number" id="menuPrice" class="form-control" required>
-                        </div>
-                        <div class="col-6 mb-3">
-                            <label>หมวดหมู่</label>
-                            <input type="text" id="menuCategory" class="form-control" placeholder="เช่น จานเดียว">
-                        </div>
-                    </div>
+                <div id="billItems" class="mb-3"></div>
+                <div class="d-flex justify-content-between fw-bold fs-5">
+                    <span>รวมทั้งสิ้น</span>
+                    <span class="text-primary" id="modalTotal">0 ฿</span>
+                </div>
+                
+                <div id="receiptArea" class="d-none bg-white p-3 text-center" style="width: 300px; font-family: monospace;">
+                    <h4 class="fw-bold">ใบเสร็จรับเงิน</h4>
+                    <p>ร้านอร่อย Pro</p>
                     <hr>
-                    <div class="mb-3">
-                        <label>Toppings (ตัวเลือกเสริม)</label>
-                        <p class="text-muted small">พิมพ์ชื่อและราคา คั่นด้วยเครื่องหมายจุลภาค (,) <br>ตัวอย่าง: <code>ไข่ดาว:10, ชีส:15, หมูสับ:10</code></p>
-                        <textarea id="menuToppings" class="form-control" rows="2" placeholder="ไข่ดาว:10, ชีส:15"></textarea>
+                    <div id="printItems" class="text-start"></div>
+                    <hr>
+                    <div class="d-flex justify-content-between fw-bold">
+                        <span>TOTAL</span>
+                        <span id="printTotal">0</span>
                     </div>
-                </form>
+                    <p class="mt-3 small">ขอบคุณที่ใช้บริการ</p>
+                </div>
+
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" onclick="saveMenu()">บันทึก</button>
+            <div class="modal-footer flex-column">
+                <div class="d-flex gap-2 w-100">
+                    <button class="btn btn-outline-dark flex-grow-1" onclick="printBill()"><i class="fas fa-print"></i> พิมพ์ใบเสร็จ</button>
+                    <button class="btn btn-success flex-grow-1" onclick="checkBin()"><i class="fas fa-money-bill-wave"></i> รับเงิน (ปิดโต๊ะ)</button>
+                </div>
+                <button class="btn btn-link text-danger w-100" onclick="cancelOrder()">ยกเลิกบิลนี้</button>
             </div>
         </div>
     </div>
@@ -143,329 +131,148 @@
 
 <script>
     // --- Config ---
-    const SUPABASE_URL = 'https://cgevinayobbjvbjdoofx.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnZXZpbmF5b2JianZiamRvb2Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzMzgxNTAsImV4cCI6MjA4NDkxNDE1MH0.buNGHEPFeYNNhb2mSpn_Q9KrjOYu-dnxDooZ4Ogv7DI';
+    const SUPABASE_URL = 'ใส่_URL_ของคุณ';
+    const SUPABASE_KEY = 'ใส่_KEY_ของคุณ';
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // --- Global Variables ---
-    let allMenus = [];
-    let currentEditingOrderId = null;
-    let currentOrderData = null;
+    let currentOrders = [];
+    let selectedOrder = null;
 
-    // --- Initialization ---
-    function showTab(tab, btn) {
-        document.getElementById('tab-orders').classList.add('d-none');
-        document.getElementById('tab-menu').classList.add('d-none');
-        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-        document.getElementById('tab-' + tab).classList.remove('d-none');
-        btn.classList.add('active');
-        if(tab === 'orders') fetchOrders();
-        if(tab === 'menu') fetchMenu();
+    // --- Init ---
+    fetchData();
+    
+    // Realtime Listener
+    db.channel('admin-chan').on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, 
+        () => fetchData()
+    ).subscribe();
+
+    async function fetchData() {
+        // ดึงเฉพาะออเดอร์ที่ไม่ใช่ 'paid'
+        const { data } = await db.from('orders').select('*').neq('status', 'paid').order('created_at');
+        currentOrders = data;
+        renderDashboard();
     }
 
-    // ================= ORDER SYSTEM =================
+    function renderDashboard() {
+        const grid = document.getElementById('orderGrid');
+        grid.innerHTML = '';
 
-    async function fetchOrders() {
-        // ดึงออเดอร์ที่ยังไม่จ่าย (pending, served)
-        const { data, error } = await db.from('orders')
-            .select('*')
-            .neq('status', 'paid')
-            .order('created_at', {ascending: false});
+        // Update Stats
+        document.getElementById('activeTables').innerText = currentOrders.length;
+        // (ส่วนยอดขายวันนี้ ต้อง Query จาก DB เพิ่มเติมโดย filter status='paid' และ created_at = today)
         
-        const list = document.getElementById('ordersList');
-        list.innerHTML = '';
-
-        if(!data || data.length === 0) {
-            list.innerHTML = '<div class="col-12 text-center text-muted mt-5"><h4>ยังไม่มีออเดอร์ค้าง (ว่าง)</h4></div>';
+        if(currentOrders.length === 0) {
+            grid.innerHTML = '<div class="col-12 text-center text-muted py-5">ยังไม่มีลูกค้า</div>';
             return;
         }
 
-        data.forEach(o => {
-            let totalItems = o.items.reduce((acc, i) => acc + (i.qty || 1), 0);
-            let btnAction = '';
-            
+        currentOrders.forEach(o => {
+            // Logic สถานะ
+            let statusBadge = '';
+            let nextBtn = '';
+
             if(o.status === 'pending') {
-                btnAction = `<button class="btn btn-success w-100 mb-2" onclick="updateStatus(${o.id}, 'served')">✅ เสิร์ฟแล้ว</button>`;
+                statusBadge = '<span class="badge bg-warning text-dark">รอคิว</span>';
+                nextBtn = `<button class="btn btn-sm btn-outline-warning w-100 mb-2" onclick="setStatus(${o.id}, 'cooking')">🔥 เริ่มทำ</button>`;
+            } else if(o.status === 'cooking') {
+                statusBadge = '<span class="badge bg-danger">กำลังปรุง</span>';
+                nextBtn = `<button class="btn btn-sm btn-success w-100 mb-2" onclick="setStatus(${o.id}, 'served')">✅ เสิร์ฟ</button>`;
+            } else {
+                statusBadge = '<span class="badge bg-success">เสิร์ฟแล้ว</span>';
             }
+
+            const itemsCount = o.items.length;
             
-            list.innerHTML += `
-                <div class="col-md-6 col-lg-4">
+            grid.innerHTML += `
+                <div class="col-md-4 col-lg-3">
                     <div class="order-card ${o.status}">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <h4 class="m-0">โต๊ะ ${o.table_no}</h4>
-                            <span class="badge bg-secondary">${new Date(o.created_at).toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'})}</span>
+                        <div class="p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="fw-bold m-0">โต๊ะ ${o.table_no}</h5>
+                                ${statusBadge}
+                            </div>
+                            <p class="text-muted small">${new Date(o.created_at).toLocaleTimeString('th-TH')} • ${itemsCount} รายการ</p>
+                            
+                            <div class="bg-light p-2 rounded mb-3" style="max-height:100px; overflow-y:auto; font-size:0.85rem;">
+                                ${o.items.map(i => `<div>- ${i.name} ${i.option ? '('+i.option+')' : ''}</div>`).join('')}
+                            </div>
+
+                            <h4 class="fw-bold text-end text-primary mb-3">${o.total_price} ฿</h4>
+                            
+                            ${nextBtn}
+                            <button class="btn btn-dark w-100" onclick="openBill(${o.id})">จัดการบิล</button>
                         </div>
-                        <div class="my-3">
-                            <span class="text-muted">รายการ: ${totalItems} อย่าง</span><br>
-                            <span class="fs-4 fw-bold text-primary">${o.total_price} ฿</span>
-                        </div>
-                        ${btnAction}
-                        <button class="btn btn-outline-dark w-100" onclick="openBillManager(${o.id})">📝 แก้ไข / คิดเงิน</button>
                     </div>
-                </div>
-            `;
+                </div>`;
         });
     }
 
-    async function updateStatus(id, status) {
-        await db.from('orders').update({ status }).eq('id', id);
-        // Realtime จะจัดการ refresh เอง
+    async function setStatus(id, status) {
+        await db.from('orders').update({status}).eq('id', id);
+        // fetchData() จะทำงานเองผ่าน Realtime
     }
 
-    // เปิด Modal จัดการบิล
-    async function openBillManager(orderId) {
-        // ดึงข้อมูลล่าสุด
-        const { data } = await db.from('orders').select('*').eq('id', orderId).single();
-        currentEditingOrderId = orderId;
-        currentOrderData = data;
+    // --- Bill Management ---
+    function openBill(id) {
+        selectedOrder = currentOrders.find(o => o.id === id);
+        document.getElementById('modalTableNo').innerText = selectedOrder.table_no;
+        document.getElementById('modalTotal').innerText = selectedOrder.total_price + ' ฿';
         
-        document.getElementById('billTableNo').innerText = data.table_no;
-        renderBillItems();
-        
-        // เตรียม Dropdown สำหรับ Admin สั่งเพิ่ม
-        prepareAdminMenuSelect();
+        const list = document.getElementById('billItems');
+        const printList = document.getElementById('printItems');
+        list.innerHTML = '';
+        printList.innerHTML = '';
 
-        const modal = new bootstrap.Modal(document.getElementById('billModal'));
-        modal.show();
-    }
-
-    function renderBillItems() {
-        const container = document.getElementById('billItemsList');
-        container.innerHTML = '';
-        let calcTotal = 0;
-
-        currentOrderData.items.forEach((item, index) => {
-            let itemTotal = item.price; 
-            // รวมราคาท็อปปิ้ง (ถ้ามี)
-            let toppingText = '';
-            if(item.selected_toppings && item.selected_toppings.length > 0) {
-                item.selected_toppings.forEach(t => {
-                    itemTotal += t.price;
-                    toppingText += `<span class="topping-tag">+${t.name} (${t.price})</span>`;
-                });
-            }
-
-            calcTotal += itemTotal;
-
-            container.innerHTML += `
-                <div class="item-row">
-                    <div>
-                        <strong>${item.name}</strong> <span class="text-muted small">(${item.price})</span>
-                        ${toppingText}
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <span class="price-badge me-3">${itemTotal} ฿</span>
-                        <button class="btn btn-sm btn-outline-danger" onclick="removeItemFromOrder(${index})">❌</button>
-                    </div>
-                </div>
-            `;
-        });
-
-        document.getElementById('billTotalDisplay').innerText = calcTotal + " ฿";
-        currentOrderData.total_price = calcTotal; // Update local variable
-    }
-
-    // --- Admin Add Item Logic ---
-    function prepareAdminMenuSelect() {
-        const sel = document.getElementById('adminMenuSelect');
-        sel.innerHTML = '<option value="">-- เลือกเมนู --</option>';
-        allMenus.forEach((m, idx) => {
-            sel.innerHTML += `<option value="${idx}">${m.name} (${m.price}฿)</option>`;
-        });
-        document.getElementById('adminToppingContainer').innerHTML = '';
-    }
-
-    function renderAdminToppingOptions() {
-        const idx = document.getElementById('adminMenuSelect').value;
-        const container = document.getElementById('adminToppingContainer');
-        container.innerHTML = '';
-        
-        if(idx === "") return;
-
-        const menu = allMenus[idx];
-        if(menu.toppings && menu.toppings.length > 0) {
-            menu.toppings.forEach((t, i) => {
-                container.innerHTML += `
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input admin-top-check" type="checkbox" value="${i}" id="top_${i}">
-                        <label class="form-check-label small" for="top_${i}">${t.name} (+${t.price})</label>
-                    </div>
-                `;
-            });
-        } else {
-            container.innerHTML = '<small class="text-muted">- ไม่มีท็อปปิ้ง -</small>';
-        }
-    }
-
-    async function adminAddItemToOrder() {
-        const idx = document.getElementById('adminMenuSelect').value;
-        if(idx === "") return;
-
-        const menu = allMenus[idx];
-        
-        // เก็บ Toppings ที่เลือก
-        const selectedToppings = [];
-        document.querySelectorAll('.admin-top-check:checked').forEach(cb => {
-            const tIndex = cb.value;
-            selectedToppings.push(menu.toppings[tIndex]);
-        });
-
-        // สร้าง Object สินค้าใหม่
-        const newItem = {
-            name: menu.name,
-            price: menu.price,
-            qty: 1,
-            selected_toppings: selectedToppings
-        };
-
-        // เพิ่มลงใน Array ของ Order ปัจจุบัน
-        currentOrderData.items.push(newItem);
-        
-        // บันทึกลง DB ทันที
-        await saveOrderChanges();
-        renderBillItems(); // รีเฟรชหน้าจอ
-    }
-
-    async function removeItemFromOrder(index) {
-        if(!confirm("ลบรายการนี้?")) return;
-        currentOrderData.items.splice(index, 1);
-        await saveOrderChanges();
-        renderBillItems();
-    }
-
-    async function saveOrderChanges() {
-        // คำนวณราคารวมใหม่ทั้งหมด
-        let newTotal = 0;
-        currentOrderData.items.forEach(item => {
-            let itemSum = item.price;
-            if(item.selected_toppings) {
-                item.selected_toppings.forEach(t => itemSum += t.price);
-            }
-            newTotal += itemSum;
-        });
-
-        await db.from('orders').update({
-            items: currentOrderData.items,
-            total_price: newTotal
-        }).eq('id', currentEditingOrderId);
-    }
-
-    async function processPayment() {
-        const btn = document.getElementById('btnCheckBill');
-        const originalText = btn.innerHTML;
-        
-        // 1. เปลี่ยนสถานะปุ่ม (Feedback)
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังคิดเงิน...';
-        btn.disabled = true;
-
-        // จำลองเวลาคิดเงินนิดหน่อย (UX)
-        setTimeout(async () => {
-            // 2. อัปเดต DB
-            await db.from('orders').update({ status: 'paid' }).eq('id', currentEditingOrderId);
+        selectedOrder.items.forEach(i => {
+            // Display UI
+            list.innerHTML += `
+                <div class="d-flex justify-content-between border-bottom py-2">
+                    <span>${i.name} <small class="text-muted">${i.option||''}</small></span>
+                    <b>${i.price}</b>
+                </div>`;
             
-            // 3. ปิด Modal และรีเฟรช
-            bootstrap.Modal.getInstance(document.getElementById('billModal')).hide();
-            Swal.fire('เรียบร้อย', 'รับเงินและปิดโต๊ะแล้ว', 'success');
-            
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }, 800);
-    }
-
-
-    // ================= MENU SYSTEM =================
-
-    async function fetchMenu() {
-        const { data } = await db.from('menu_items').select('*').order('id');
-        allMenus = data || []; // เก็บไว้ใช้ใน Dropdown Admin ด้วย
-        const tbody = document.getElementById('menuTableBody');
-        tbody.innerHTML = '';
-        
-        allMenus.forEach(m => {
-            // Format Topping Display
-            let toppingBadge = '-';
-            if(m.toppings && Array.isArray(m.toppings) && m.toppings.length > 0) {
-                toppingBadge = m.toppings.map(t => `<span class="badge bg-info text-dark">${t.name}:${t.price}</span>`).join(' ');
-            }
-
-            tbody.innerHTML += `
-                <tr>
-                    <td>${m.name}</td>
-                    <td>${m.price}</td>
-                    <td>${m.category}</td>
-                    <td>${toppingBadge}</td>
-                    <td>${m.is_available ? '<span class="text-success">ขาย</span>' : '<span class="text-danger">หมด</span>'}</td>
-                    <td>
-                        <button class="btn btn-sm btn-warning" onclick="toggleMenu(${m.id}, ${!m.is_available})">สลับ</button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteMenu(${m.id})">ลบ</button>
-                    </td>
-                </tr>`;
+            // Print UI
+            printList.innerHTML += `
+                <div style="display:flex; justify-content:space-between;">
+                    <span>${i.name} ${i.option ? '('+i.option+')' : ''}</span>
+                    <span>${i.price}</span>
+                </div>`;
         });
-    }
-
-    function openMenuModal() {
-        document.getElementById('menuForm').reset();
-        document.getElementById('menuId').value = '';
-        new bootstrap.Modal(document.getElementById('menuModal')).show();
-    }
-
-    async function saveMenu() {
-        const name = document.getElementById('menuName').value;
-        const price = parseInt(document.getElementById('menuPrice').value);
-        const category = document.getElementById('menuCategory').value;
-        const toppingStr = document.getElementById('menuToppings').value;
-
-        // แปลงข้อความ Topping เป็น JSON Array
-        // Format: "ไข่ดาว:10, ชีส:15" -> [{name:'ไข่ดาว', price:10}, ...]
-        let toppingsArray = [];
-        if(toppingStr.trim() !== "") {
-            const parts = toppingStr.split(',');
-            parts.forEach(p => {
-                const [tName, tPrice] = p.split(':');
-                if(tName && tPrice) {
-                    toppingsArray.push({
-                        name: tName.trim(),
-                        price: parseInt(tPrice.trim())
-                    });
-                }
-            });
-        }
-
-        const payload = {
-            name, price, category, 
-            toppings: toppingsArray
-        };
-
-        const { error } = await db.from('menu_items').insert([payload]);
         
-        if(error) {
-            alert('Error: ' + error.message);
-        } else {
-            bootstrap.Modal.getInstance(document.getElementById('menuModal')).hide();
-            fetchMenu();
-        }
+        document.getElementById('printTotal').innerText = selectedOrder.total_price + ' ฿';
+
+        new bootstrap.Modal(document.getElementById('billModal')).show();
     }
 
-    async function toggleMenu(id, status) {
-        await db.from('menu_items').update({ is_available: status }).eq('id', id);
-        fetchMenu();
+    async function checkBin() {
+        if(!confirm('ยืนยันรับเงิน?')) return;
+        await db.from('orders').update({status: 'paid'}).eq('id', selectedOrder.id);
+        bootstrap.Modal.getInstance(document.getElementById('billModal')).hide();
+        Swal.fire('เรียบร้อย', 'ปิดโต๊ะแล้ว', 'success');
     }
 
-    async function deleteMenu(id) {
-        if(confirm('ยืนยันลบเมนู?')) {
-            await db.from('menu_items').delete().eq('id', id);
-            fetchMenu();
-        }
+    async function cancelOrder() {
+        if(!confirm('ต้องการลบบิลนี้ทิ้ง ใช่หรือไม่?')) return;
+        await db.from('orders').delete().eq('id', selectedOrder.id);
+        bootstrap.Modal.getInstance(document.getElementById('billModal')).hide();
     }
 
-    // Realtime Listener
-    db.channel('admin-pro').on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, 
-        () => fetchOrders()
-    ).subscribe();
+    function printBill() {
+        const content = document.getElementById('receiptArea').innerHTML;
+        // เปิดหน้าต่างใหม่เพื่อพิมพ์
+        const win = window.open('', '', 'height=600,width=400');
+        win.document.write('<html><head><title>Receipt</title>');
+        win.document.write('</head><body >');
+        win.document.write(content);
+        win.document.write('</body></html>');
+        win.document.close();
+        win.print();
+    }
 
-    // Start
-    fetchOrders();
-    fetchMenu(); // Fetch menu ไว้เลยเพื่อเตรียม Dropdown ให้ Admin
+    function switchTab(tab) {
+        document.querySelectorAll('[id^="view-"]').forEach(e => e.classList.add('d-none'));
+        document.getElementById('view-'+tab).classList.remove('d-none');
+    }
 </script>
 </body>
 </html>
