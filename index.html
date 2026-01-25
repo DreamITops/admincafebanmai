@@ -147,14 +147,7 @@
         if(view === 'dashboard') fetchOrders();
     }
 
-    // --- Dashboard Logic ---
     async function fetchOrders() {
-        const { data, error } = await db.from('orders').select('*').neq('status', 'paid').order('updated_at', {ascending:false});
-        if(error) { console.error(error); return; }
-        
-        currentOrders = data || [];
-        renderDashboard();
-    }
 
     function renderDashboard() {
         const grid = document.getElementById('orderGrid');
