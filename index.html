@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restaurant Pro - Admin</title>
+    <title>Restaurant Pro - Admin (Upgrade)</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -30,6 +30,11 @@
         .img-preview-box img { width: 100%; height: 100%; object-fit: cover; }
         .bar-container { height: 20px; background: #e9ecef; border-radius: 10px; overflow: hidden; margin-top: 5px; }
         .bar-fill { height: 100%; background: #28a745; transition: width 0.5s; }
+
+        /* Style สำหรับตัวเลือกเมนูในหน้าบิล */
+        .menu-selector-btn { text-align: left; white-space: normal; height: auto; padding: 8px; border: 1px solid #dee2e6; background: white; transition: 0.2s; }
+        .menu-selector-btn:hover { border-color: #0d6efd; background: #f8f9fa; transform: translateY(-2px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .cat-tab.active { background-color: #0d6efd; color: white; border-color: #0d6efd; }
 
         @media(max-width: 992px) {
             .sidebar { display: none; }
@@ -84,8 +89,8 @@
     <div id="view-report" class="d-none">
         <h3 class="mb-4">📊 รายงานรายได้</h3>
         <ul class="nav nav-tabs mb-3">
-            <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#daily" onclick="renderReport('daily')">รายวัน</a></li>
-            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#monthly" onclick="renderReport('monthly')">รายเดือน</a></li>
+            <li class="nav-item-tab"><a class="nav-link active" data-bs-toggle="tab" href="#daily" onclick="renderReport('daily')">รายวัน</a></li>
+            <li class="nav-item-tab"><a class="nav-link" data-bs-toggle="tab" href="#monthly" onclick="renderReport('monthly')">รายเดือน</a></li>
         </ul>
         <div class="card p-3 mb-3 bg-light">
             <div class="d-flex justify-content-between align-items-center">
@@ -117,7 +122,8 @@
                             <select id="menuCategory" class="form-select">
                                 <option value="อาหาร">อาหาร</option>
                                 <option value="เครื่องดื่ม">เครื่องดื่ม</option>
-                                <option value="ทานเล่น">ทานเล่น</option>
+                                <option value="กาแฟ">กาแฟ</option> <option value="ทานเล่น">ทานเล่น</option>
+                                <option value="ของหวาน">ของหวาน</option>
                             </select>
                         </div>
                     </div>
@@ -135,30 +141,37 @@
 </div>
 
 <div class="modal fade" id="billModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-light"><h5 class="modal-title fw-bold">จัดการโต๊ะ <span id="modalTableNo"></span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-dialog modal-xl"> <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold"><i class="fas fa-receipt"></i> จัดการโต๊ะ <span id="modalTableNo" class="text-primary"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
             <div class="modal-body">
-                <div class="card mb-3 border-primary">
-                    <div class="card-body p-2 d-flex gap-2 align-items-center bg-primary bg-opacity-10">
-                        <select id="quickAddMenu" class="form-select form-select-sm"><option value="">-- เพิ่มเมนู --</option></select>
-                        <button class="btn btn-primary btn-sm text-nowrap" onclick="addItemToOrder()">เพิ่ม</button>
+                <div class="row">
+                    <div class="col-md-5 order-md-2 border-start">
+                        <h6 class="fw-bold text-muted mb-3">รายการที่สั่งแล้ว</h6>
+                        <div class="table-responsive border rounded" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-sm mb-0">
+                                <thead class="table-light sticky-top"><tr><th>รายการ</th><th width="100">จำนวน</th><th class="text-end">รวม</th></tr></thead>
+                                <tbody id="billItemsDisplay"></tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top bg-light p-3 rounded">
+                            <h5 class="text-muted m-0">ยอดสุทธิ</h5>
+                            <h3 class="text-primary fw-bold m-0" id="modalTotal">0 ฿</h3>
+                        </div>
+                        <button class="btn btn-success fw-bold w-100 mt-3 py-2" onclick="checkBin()">💰 รับเงิน / ปิดโต๊ะ</button>
+                    </div>
+
+                    <div class="col-md-7 order-md-1 mb-3">
+                        <h6 class="fw-bold text-muted mb-2">เพิ่มรายการใหม่</h6>
+                        <div class="d-flex gap-2 overflow-auto pb-2 mb-2" id="billMenuCategories">
+                            </div>
+                        
+                        <div class="row g-2" id="billMenuGrid" style="max-height: 450px; overflow-y: auto; align-content: flex-start;">
+                            </div>
                     </div>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead class="table-light"><tr><th>รายการ</th><th width="120">จำนวน</th><th class="text-end" width="100">รวม</th></tr></thead>
-                        <tbody id="billItemsDisplay"></tbody>
-                    </table>
-                </div>
-                <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-                    <h5 class="text-muted">ยอดสุทธิ</h5>
-                    <h3 class="text-primary fw-bold" id="modalTotal">0 ฿</h3>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
-                <button class="btn btn-success fw-bold px-4" onclick="checkBin()">💰 รับเงิน / ปิดโต๊ะ</button>
             </div>
         </div>
     </div>
@@ -176,6 +189,7 @@
     let allMenus = [];
     let currentOrders = [];
     let selectedOrder = null;
+    let currentBillCategory = 'ทั้งหมด'; // สถานะหมวดหมู่ปัจจุบันในหน้าบิล
 
     // --- Init & Realtime ---
     fetchOrders();
@@ -183,19 +197,16 @@
     // Subscribe to Realtime Updates
     db.channel('admin-realtime')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
-            // ถ้ามีออเดอร์ใหม่ (INSERT) ให้เล่นเสียงและแจ้งเตือน
             if (payload.eventType === 'INSERT') {
                 playNotification();
                 const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
                 Toast.fire({ icon: 'success', title: '🔔 มีออเดอร์ใหม่เข้าครับ!' });
             }
-            // รีโหลดข้อมูลทันทีไม่ว่า event อะไร (INSERT/UPDATE/DELETE)
             fetchOrders();
         })
         .subscribe();
 
     function playNotification() {
-        // Browser might block auto-play if user hasn't interacted with page yet
         notificationSound.play().catch(error => console.log("Audio play blocked:", error));
     }
 
@@ -241,9 +252,9 @@
                         <div class="bg-light p-2 rounded mb-2 small" style="max-height:100px;overflow-y:auto">
                             ${o.items.map(i=> `<div>- ${i.name} ${i.option?`(${i.option})`:''} <span class="text-muted">x${i.qty||1}</span></div>`).join('')}
                         </div>
-                        <h5 class="text-end fw-bold text-primary">${o.total_price} ฿</h5>
+                        <h5 class="text-end fw-bold text-primary">${o.total_price.toLocaleString()} ฿</h5>
                         ${btn}
-                        <button class="btn btn-dark w-100 btn-sm" onclick="openBill(${o.id})">จัดการบิล</button>
+                        <button class="btn btn-dark w-100 btn-sm" onclick="openBill(${o.id})">แก้ไข / เช็คบิล</button>
                     </div>
                 </div>`;
         });
@@ -251,18 +262,65 @@
 
     async function setStatus(id, st) { await db.from('orders').update({status:st}).eq('id', id); }
 
-    // --- Bill Management ---
+    // --- Bill Management & New Category Feature ---
     async function openBill(id) {
         const { data } = await db.from('orders').select('*').eq('id', id).single();
         selectedOrder = data;
-        if(allMenus.length===0) await fetchMenu();
-        const select = document.getElementById('quickAddMenu');
-        select.innerHTML = '<option value="">-- เพิ่มเมนู --</option>';
-        allMenus.forEach((m, idx) => select.innerHTML += `<option value="${idx}">${m.name} (${m.price}฿)</option>`);
+        
+        // โหลดเมนูถ้ายังไม่มี
+        if(allMenus.length === 0) await fetchMenu();
         
         document.getElementById('modalTableNo').innerText = selectedOrder.table_no;
         renderBillItems();
+        
+        // Render หมวดหมู่และเมนูในหน้าบิล
+        renderBillCategories();
+        renderBillMenuGrid('ทั้งหมด');
+        
         new bootstrap.Modal(document.getElementById('billModal')).show();
+    }
+
+    function renderBillCategories() {
+        const cats = ['ทั้งหมด', ...new Set(allMenus.map(m => m.category || 'อื่นๆ'))];
+        const container = document.getElementById('billMenuCategories');
+        container.innerHTML = '';
+        cats.forEach(c => {
+            const activeClass = c === currentBillCategory ? 'btn-primary' : 'btn-outline-secondary';
+            container.innerHTML += `<button class="btn btn-sm ${activeClass} text-nowrap" onclick="changeBillCategory('${c}')">${c}</button>`;
+        });
+    }
+
+    function changeBillCategory(cat) {
+        currentBillCategory = cat;
+        renderBillCategories(); // Re-render เพื่อเปลี่ยนสีปุ่ม active
+        renderBillMenuGrid(cat);
+    }
+
+    function renderBillMenuGrid(cat) {
+        const grid = document.getElementById('billMenuGrid');
+        grid.innerHTML = '';
+        
+        const items = cat === 'ทั้งหมด' ? allMenus : allMenus.filter(m => m.category === cat);
+        
+        if(items.length === 0) {
+            grid.innerHTML = '<div class="text-center w-100 text-muted mt-3">ไม่มีรายการในหมวดนี้</div>';
+            return;
+        }
+
+        items.forEach(m => {
+            const imgHtml = m.image_url ? `<img src="${m.image_url}" style="width:40px;height:40px;border-radius:5px;object-fit:cover;" class="me-2">` : '';
+            grid.innerHTML += `
+                <div class="col-6 col-lg-4">
+                    <button class="btn w-100 menu-selector-btn d-flex align-items-center" onclick="addMenuToBill(${m.id})">
+                        ${imgHtml}
+                        <div style="overflow:hidden;">
+                            <div class="fw-bold text-truncate">${m.name}</div>
+                            <small class="text-success">${m.price} ฿</small>
+                        </div>
+                    </button>
+                </div>
+            `;
+        });
     }
 
     function renderBillItems() {
@@ -273,26 +331,63 @@
             const qty = item.qty || 1;
             const itemTotal = item.price * qty;
             total += itemTotal;
-            tbody.innerHTML += `<tr><td><div>${item.name} <small class="text-muted">${item.option||''}</small></div></td><td><div class="input-group input-group-sm"><button class="btn btn-outline-secondary" onclick="adjustItem(${index},-1)">-</button><span class="form-control text-center px-0">${qty}</span><button class="btn btn-outline-secondary" onclick="adjustItem(${index},1)">+</button></div></td><td class="text-end fw-bold">${itemTotal}</td></tr>`;
+            tbody.innerHTML += `
+                <tr>
+                    <td>
+                        <div class="fw-bold">${item.name}</div>
+                        ${item.option ? `<small class="text-muted">${item.option}</small>` : ''}
+                    </td>
+                    <td>
+                        <div class="input-group input-group-sm" style="width: 90px;">
+                            <button class="btn btn-outline-secondary px-2" onclick="adjustItem(${index},-1)">-</button>
+                            <span class="form-control text-center px-0 bg-white">${qty}</span>
+                            <button class="btn btn-outline-secondary px-2" onclick="adjustItem(${index},1)">+</button>
+                        </div>
+                    </td>
+                    <td class="text-end fw-bold">${itemTotal.toLocaleString()}</td>
+                </tr>`;
         });
-        document.getElementById('modalTotal').innerText = total + " ฿";
+        document.getElementById('modalTotal').innerText = total.toLocaleString() + " ฿";
     }
 
     async function adjustItem(idx, delta) {
         selectedOrder.items[idx].qty = (selectedOrder.items[idx].qty || 1) + delta;
-        if (selectedOrder.items[idx].qty <= 0) { if(!confirm('ลบรายการ?')) { selectedOrder.items[idx].qty=1; return; } selectedOrder.items.splice(idx,1); }
+        if (selectedOrder.items[idx].qty <= 0) { 
+            if(!confirm('ต้องการลบรายการนี้ใช่ไหม?')) { selectedOrder.items[idx].qty=1; return; } 
+            selectedOrder.items.splice(idx,1); 
+        }
         await saveOrderUpdate();
     }
 
-    async function addItemToOrder() {
-        const idx = document.getElementById('quickAddMenu').value;
-        if(idx==="") return;
-        const m = allMenus[idx];
-        const exist = selectedOrder.items.find(i=>i.id===m.id && !i.option);
-        if(exist) exist.qty = (exist.qty||1)+1;
-        else selectedOrder.items.push({ id: m.id, name: m.name, price: m.price, qty: 1, option: '', note: '' });
+    async function addMenuToBill(menuId) {
+        const m = allMenus.find(x => x.id === menuId);
+        if(!m) return;
+        
+        // เช็คว่ามีรายการเดิมที่ไม่มี option ไหม ถ้ามีให้บวกเพิ่มเลย
+        const exist = selectedOrder.items.find(i => i.id === m.id && !i.option);
+        
+        if(exist) {
+            exist.qty = (exist.qty || 1) + 1;
+        } else {
+            // ถ้าเป็นเมนูที่มีตัวเลือกเยอะ อาจจะต้องทำ Modal ย่อยเพิ่ม แต่เบื้องต้นแอดแบบ default ไปก่อน
+            let defaultOption = '';
+            if(m.options && m.options.length > 0) defaultOption = m.options[0].name; // ตัวอย่างเลือกอันแรก
+            
+            selectedOrder.items.push({ 
+                id: m.id, 
+                name: m.name, 
+                price: m.price, 
+                qty: 1, 
+                option: '', // ถ้าอยากให้เลือก Topping ต้องทำ UI เพิ่ม
+                note: '' 
+            });
+        }
+        
         await saveOrderUpdate();
-        document.getElementById('quickAddMenu').value = "";
+        
+        // Feedback visual
+        const Toast = Swal.mixin({ toast: true, position: 'center', showConfirmButton: false, timer: 1000 });
+        Toast.fire({ icon: 'success', title: 'เพิ่ม ' + m.name });
     }
 
     async function saveOrderUpdate() {
@@ -301,23 +396,24 @@
         const { data } = await db.from('orders').select('*').eq('id', selectedOrder.id).single();
         selectedOrder = data;
         renderBillItems();
+        fetchOrders(); // รีเฟรช dashboard ด้วย
     }
 
     async function checkBin() {
-        if(confirm('ยืนยันปิดโต๊ะ?')) {
+        if(confirm('ยืนยันรับเงินและปิดโต๊ะนี้?')) {
             await db.from('orders').update({status:'paid'}).eq('id', selectedOrder.id);
             bootstrap.Modal.getInstance(document.getElementById('billModal')).hide();
         }
     }
 
-    // --- Menu & Report Logic (Simplified for brevity but functional) ---
+    // --- Menu & Report Logic ---
     async function fetchMenu() {
         const { data } = await db.from('menu_items').select('*').order('id');
         allMenus = data || [];
         const tbody = document.getElementById('menuTableBody');
         tbody.innerHTML = '';
         allMenus.forEach(m => {
-            tbody.innerHTML += `<tr><td><img src="${m.image_url||'https://via.placeholder.com/50'}" width="50" style="border-radius:5px"></td><td>${m.name}</td><td>${m.price}</td><td>${m.category}</td><td>${m.is_available?'<span class="text-success">ขาย</span>':'<span class="text-danger">หมด</span>'}</td><td><button class="btn btn-sm btn-outline-primary" onclick="editMenu(${m.id})"><i class="fas fa-edit"></i></button> <button class="btn btn-sm btn-outline-danger" onclick="deleteMenu(${m.id})"><i class="fas fa-trash"></i></button></td></tr>`;
+            tbody.innerHTML += `<tr><td><img src="${m.image_url||'https://via.placeholder.com/50'}" width="50" style="border-radius:5px"></td><td>${m.name}</td><td>${m.price}</td><td><span class="badge bg-secondary">${m.category||'ทั่วไป'}</span></td><td>${m.is_available?'<span class="text-success">ขาย</span>':'<span class="text-danger">หมด</span>'}</td><td><button class="btn btn-sm btn-outline-primary" onclick="editMenu(${m.id})"><i class="fas fa-edit"></i></button> <button class="btn btn-sm btn-outline-danger" onclick="deleteMenu(${m.id})"><i class="fas fa-trash"></i></button></td></tr>`;
         });
     }
 
