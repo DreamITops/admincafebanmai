@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restaurant Pro - Admin (New Categories)</title>
+    <title>Restaurant Pro - Admin (Fixed Categories)</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -270,16 +270,10 @@
     }
 
     function renderBillCategories() {
-        // ดึงหมวดหมู่จากเมนูที่มีอยู่จริง และเรียงให้สวยงามตามที่เราต้องการ
-        const predefinedOrder = ['สเต็ก', 'เบอร์เกอร์', 'ของทานเล่น', 'ของหวาน', 'เครื่องดื่ม', 'กาแฟ'];
-        const existingCats = [...new Set(allMenus.map(m => m.category))];
-        
-        // เรียง existingCats ตาม predefinedOrder
-        const sortedCats = existingCats.sort((a, b) => {
-            return predefinedOrder.indexOf(a) - predefinedOrder.indexOf(b);
-        });
+        // --- แก้ไขตรงนี้ครับ ให้เป็น Fixed List ---
+        const definedCats = ['สเต็ก', 'เบอร์เกอร์', 'ของทานเล่น', 'ของหวาน', 'เครื่องดื่ม', 'กาแฟ'];
+        const cats = ['ทั้งหมด', ...definedCats]; // เอาคำว่าทั้งหมดไว้หน้าสุด แล้วตามด้วย 6 หมวด
 
-        const cats = ['ทั้งหมด', ...sortedCats];
         const container = document.getElementById('billMenuCategories');
         container.innerHTML = '';
         cats.forEach(c => {
