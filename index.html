@@ -11,34 +11,21 @@
 
     <style>
         body { background: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        
-        /* Sidebar */
         .sidebar { width: 260px; height: 100vh; background: #2c3e50; color: white; position: fixed; padding: 20px; z-index: 100; transition: all 0.3s ease; overflow-x: hidden; }
         .main { margin-left: 260px; padding: 30px; transition: all 0.3s ease; }
         .nav-item { padding: 12px; margin-bottom: 5px; cursor: pointer; border-radius: 8px; color: #ccc; display: flex; align-items: center; gap: 15px; white-space: nowrap; overflow: hidden; }
         .nav-item:hover, .nav-item.active { background: #34495e; color: white; font-weight: bold; }
         .nav-item i { min-width: 20px; text-align: center; font-size: 1.1rem; }
-        
-        /* Mobile Sidebar */
         body.sidebar-mini .sidebar { width: 80px; padding: 20px 10px; }
         body.sidebar-mini .main { margin-left: 80px; }
         body.sidebar-mini .nav-text, body.sidebar-mini .sidebar-header-text { display: none; }
         body.sidebar-mini .nav-item { justify-content: center; }
-
-        /* UI Elements */
         .img-preview-box { width: 160px; height: 160px; border: 2px dashed #ccc; border-radius: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; margin: 0 auto; background: #fff; cursor: pointer; position: relative;}
         .img-preview-box img { width: 100%; height: 100%; object-fit: cover; }
         .img-preview-box:hover { border-color: #0d6efd; background: #f0f8ff; }
-        
-        .bar-container { height: 20px; background: #e9ecef; border-radius: 10px; overflow: hidden; margin-top: 5px; }
-        .bar-fill { height: 100%; background: #28a745; transition: width 0.5s; }
-        
+        .table-img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #dee2e6; background: #eee; }
         .menu-selector-btn { text-align: left; white-space: normal; height: auto; padding: 8px; border: 1px solid #dee2e6; background: white; transition: 0.2s; }
         .menu-selector-btn:hover { border-color: #0d6efd; background: #f8f9fa; transform: translateY(-2px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-
-        /* Table Image */
-        .table-img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #dee2e6; background: #eee; }
-
         @media(max-width: 992px) { .sidebar { display: none; } .main { margin-left: 0; padding: 15px; } }
     </style>
 </head>
@@ -70,7 +57,7 @@
             <div class="col-6"><div class="card p-3 border-start border-4 border-success"><h3><i class="fas fa-coins"></i> <span id="pendingSales">0</span></h3><small>ยอดรอเก็บ</small></div></div>
         </div>
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold m-0"><i class="fas fa-list"></i> รายการออเดอร์ (อัปเดตทุก 5 วินาที)</h5>
+            <h5 class="fw-bold m-0"><i class="fas fa-list"></i> รายการออเดอร์ (Update: 5s)</h5>
             <div class="spinner-grow spinner-grow-sm text-success" role="status" id="loadingSpinner"></div>
         </div>
         <div class="row" id="orderGrid"><div class="col-12 text-center py-5">Loading...</div></div>
@@ -113,15 +100,13 @@
                 <form id="menuForm">
                     <input type="hidden" id="editMenuId">
                     <input type="hidden" id="menuExistingUrl">
-                    
                     <div class="mb-3 text-center">
                         <label class="img-preview-box" for="menuImageFile" title="คลิกเพื่อเลือกรูปภาพ">
-                            <img id="previewImg" src="https://via.placeholder.com/150?text=Upload+Image" alt="Preview">
+                            <img id="previewImg" src="https://placehold.co/150x150?text=Upload+Image" alt="Preview">
                             <input type="file" id="menuImageFile" accept="image/*" hidden onchange="previewImage(event)">
                         </label>
-                        <small class="text-muted d-block mt-2">คลิกที่กรอบเพื่ออัปโหลดรูป (บันทึกลง Google Drive)</small>
+                        <small class="text-muted d-block mt-2">คลิกที่กรอบเพื่ออัปโหลดรูป</small>
                     </div>
-
                     <input type="text" id="menuName" class="form-control mb-2" placeholder="ชื่อเมนู" required>
                     <div class="row mb-3">
                         <div class="col-6"><input type="number" id="menuPrice" class="form-control" placeholder="ราคา" required></div>
@@ -174,7 +159,6 @@
                         </div>
                         <button class="btn btn-success fw-bold w-100 mt-3 py-2" onclick="checkBin()">💰 รับเงิน / ปิดโต๊ะ</button>
                     </div>
-
                     <div class="col-md-7 order-md-1 mb-3">
                         <h6 class="fw-bold text-muted mb-2">เพิ่มรายการใหม่</h6>
                         <div class="d-flex gap-2 overflow-auto pb-2 mb-2" id="billMenuCategories"></div>
@@ -187,9 +171,8 @@
 </div>
 
 <script>
-    // --- CONFIGURATION ---
-    // !!! ใส่ URL Web App ที่ได้จากการ Deploy Apps Script ตรงนี้ !!!
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxP--026ajqh2m49mN0b8EKJzz58cEyY1QQl3REE7rSXBfC874iFWsdi_kAFdNxAN0t/exec'; 
+    // --- ใส่ URL Web App อันล่าสุดของคุณตรงนี้ ---
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz6tXDr5aHNDsn9mlbglnKHSnqsgixeKObMbGWxlVRXGOzJpRrtJp7AUX-P3WprVMBH/exec'; 
 
     let allMenus = [];
     let currentOrders = [];
@@ -197,13 +180,12 @@
     let currentBillCategory = 'ทั้งหมด';
     let pollInterval;
 
-    // --- SYSTEM START ---
-    fetchOrders(); // เรียกครั้งแรก
-    startPolling(); // เริ่มระบบวนเช็คออเดอร์
+    fetchOrders(); 
+    startPolling(); 
 
     function startPolling() {
         if(pollInterval) clearInterval(pollInterval);
-        pollInterval = setInterval(fetchOrders, 5000); // เช็คทุก 5 วินาที
+        pollInterval = setInterval(fetchOrders, 5000); 
     }
 
     function toggleSidebar() { document.body.classList.toggle('sidebar-mini'); }
@@ -220,7 +202,6 @@
         if(view === 'report') renderReport('daily');
     }
 
-    // --- API HELPER ---
     async function apiRequest(params, method = 'GET') {
         try {
             let options = { method: method };
@@ -238,7 +219,6 @@
         }
     }
 
-    // --- DASHBOARD & ORDERS ---
     async function fetchOrders() {
         const data = await apiRequest({ action: 'getOrders' });
         if(!data) return;
@@ -257,7 +237,6 @@
         currentOrders.forEach(o => {
             let badge = o.status==='pending'?'bg-warning':(o.status==='cooking'?'bg-danger':'bg-success');
             let statusText = o.status==='pending'?'รอทำ':(o.status==='cooking'?'กำลังทำ':'เสิร์ฟแล้ว');
-            
             let btn = '';
             if(o.status==='pending') btn = `<button class="btn btn-outline-warning w-100 btn-sm mb-2" onclick="setStatus(${o.id},'cooking')">🔥 ปรุง</button>`;
             else if(o.status==='cooking') btn = `<button class="btn btn-success w-100 btn-sm mb-2" onclick="setStatus(${o.id},'served')">✅ เสิร์ฟ</button>`;
@@ -284,7 +263,6 @@
         fetchOrders();
     }
 
-    // --- BILL MANAGEMENT ---
     async function openBill(id) {
         selectedOrder = currentOrders.find(o => o.id === id);
         if(!selectedOrder) return;
@@ -367,13 +345,26 @@
         await apiRequest({ action: 'updateOrderItems', id: selectedOrder.id, items: selectedOrder.items, total_price: selectedOrder.total_price }, 'POST');
     }
 
+    // --- แก้ไข: รับเงินแล้วลบออกจากหน้าจอทันที ---
     async function checkBin() {
         if(confirm('ยืนยันรับเงินและปิดโต๊ะ?')) {
-            Swal.showLoading();
-            await apiRequest({ action: 'updateStatus', id: selectedOrder.id, status: 'paid' }, 'POST');
+            const orderId = selectedOrder.id;
+            
+            // ปิด Modal ทันที
+            const modal = bootstrap.Modal.getInstance(document.getElementById('billModal'));
+            modal.hide();
+
+            Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
+
+            // ส่งข้อมูลไป Backend
+            await apiRequest({ action: 'updateStatus', id: orderId, status: 'paid' }, 'POST');
+
+            // ลบออกจากหน้าจอทันที (ไม่ต้องรอ fetch)
+            currentOrders = currentOrders.filter(o => o.id !== orderId);
+            renderDashboard();
+
             Swal.close();
-            bootstrap.Modal.getInstance(document.getElementById('billModal')).hide();
-            fetchOrders();
+            fetchOrders(); 
         }
     }
 
@@ -393,11 +384,11 @@
             allMenus.forEach(m => {
                 const imgShow = m.image_url && m.image_url.startsWith('http') 
                     ? m.image_url 
-                    : 'https://via.placeholder.com/100?text=No+Img';
+                    : 'https://placehold.co/100x100?text=No+Img'; // ใช้ placehold.co แทน
 
                 tbody.innerHTML += `
                 <tr>
-                    <td><img src="${imgShow}" class="table-img" onerror="this.src='https://via.placeholder.com/100?text=Error'"></td>
+                    <td><img src="${imgShow}" class="table-img" onerror="this.src='https://placehold.co/100x100?text=Error'"></td>
                     <td><div class="fw-bold">${m.name}</div><small class="text-muted">ID: ${m.id}</small></td>
                     <td class="fw-bold text-success">${m.price} ฿</td>
                     <td><span class="badge bg-info text-dark">${m.category}</span></td>
@@ -411,7 +402,6 @@
         }
     }
 
-    // Image Upload Helpers
     function previewImage(e) { 
         if(e.target.files[0]) {
             const reader = new FileReader();
@@ -431,7 +421,7 @@
         document.getElementById('menuForm').reset(); 
         document.getElementById('editMenuId').value=""; 
         document.getElementById('menuExistingUrl').value="";
-        document.getElementById('previewImg').src = 'https://via.placeholder.com/150?text=Upload+Image';
+        document.getElementById('previewImg').src = 'https://placehold.co/150x150?text=Upload+Image';
         document.getElementById('toppingContainer').innerHTML=''; 
         addToppingInput(); 
         new bootstrap.Modal(document.getElementById('menuModal')).show(); 
@@ -444,8 +434,8 @@
         document.getElementById('menuPrice').value=m.price; 
         document.getElementById('menuCategory').value=m.category; 
         document.getElementById('menuExistingUrl').value = m.image_url || "";
-        document.getElementById('previewImg').src = m.image_url || "https://via.placeholder.com/150?text=No+Image";
-        document.getElementById('menuImageFile').value = ""; // reset file input
+        document.getElementById('previewImg').src = m.image_url || "https://placehold.co/150x150?text=No+Image";
+        document.getElementById('menuImageFile').value = ""; 
 
         document.getElementById('toppingContainer').innerHTML='';
         if(m.options && m.options.length) m.options.forEach(o=>addToppingInput(o.name,o.price)); else addToppingInput();
@@ -500,7 +490,6 @@
         } 
     }
 
-    // --- REPORT ---
     async function renderReport(mode) {
         document.getElementById('reportContent').innerHTML='Loading...';
         const allData = await apiRequest({ action: 'getOrders' });
@@ -529,8 +518,3 @@
 </script>
 </body>
 </html>
-
-
-
-
-
