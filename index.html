@@ -3,225 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restaurant Pro - Admin</title>
+    <title>Restaurant Pro - แผงควบคุมแอดมิน</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <style>
-        body { background: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .sidebar { width: 260px; height: 100vh; background: #2c3e50; color: white; position: fixed; padding: 20px; z-index: 100; transition: all 0.3s ease; overflow-x: hidden; }
+        body { background: #f0f2f5; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        .sidebar { width: 260px; height: 100vh; background: #2c3e50; color: white; position: fixed; padding: 20px; z-index: 100; transition: all 0.3s ease; }
         .main { margin-left: 260px; padding: 30px; transition: all 0.3s ease; }
-        .nav-item { padding: 12px; margin-bottom: 5px; cursor: pointer; border-radius: 8px; color: #ccc; display: flex; align-items: center; gap: 15px; white-space: nowrap; overflow: hidden; }
+        .nav-item { padding: 12px; margin-bottom: 5px; cursor: pointer; border-radius: 8px; color: #ccc; display: flex; align-items: center; gap: 15px; }
         .nav-item:hover, .nav-item.active { background: #34495e; color: white; font-weight: bold; }
-        .nav-item i { min-width: 20px; text-align: center; font-size: 1.1rem; }
-        body.sidebar-mini .sidebar { width: 80px; padding: 20px 10px; }
-        body.sidebar-mini .main { margin-left: 80px; }
-        body.sidebar-mini .nav-text, body.sidebar-mini .sidebar-header-text { display: none; }
-        body.sidebar-mini .nav-item { justify-content: center; }
-        .img-preview-box { width: 160px; height: 160px; border: 2px dashed #ccc; border-radius: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; margin: 0 auto; background: #fff; cursor: pointer; position: relative;}
-        .img-preview-box img { width: 100%; height: 100%; object-fit: cover; }
-        .img-preview-box:hover { border-color: #0d6efd; background: #f0f8ff; }
+        .nav-item i { min-width: 20px; text-align: center; }
         .table-img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #dee2e6; background: #eee; }
-        .menu-selector-btn { text-align: left; white-space: normal; height: auto; padding: 8px; border: 1px solid #dee2e6; background: white; transition: 0.2s; }
-        .menu-selector-btn:hover { border-color: #0d6efd; background: #f8f9fa; transform: translateY(-2px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .img-preview-box { width: 160px; height: 160px; border: 2px dashed #ccc; border-radius: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; margin: 0 auto; background: #fff; cursor: pointer; }
+        .img-preview-box img { width: 100%; height: 100%; object-fit: cover; }
+        .menu-selector-btn { text-align: left; padding: 10px; border: 1px solid #dee2e6; background: white; border-radius: 10px; width: 100%; margin-bottom: 5px; }
         @media(max-width: 992px) { .sidebar { display: none; } .main { margin-left: 0; padding: 15px; } }
     </style>
 </head>
 <body>
 
 <div class="sidebar d-none d-lg-block">
-    <div class="d-flex align-items-center justify-content-between mb-4 ps-2">
-        <h4 class="m-0 text-warning fw-bold sidebar-header-text"><i class="fas fa-utensils"></i> Admin</h4>
-        <button class="btn btn-sm btn-outline-secondary text-white border-0" onclick="toggleSidebar()"><i class="fas fa-bars fa-lg"></i></button>
+    <div class="mb-4 ps-2">
+        <h4 class="text-warning fw-bold"><i class="fas fa-utensils"></i> Admin Panel</h4>
     </div>
-    <div class="nav-item active" onclick="switchTab('dashboard', this)"><i class="fas fa-home"></i> <span class="nav-text">ออเดอร์ & ภาพรวม</span></div>
-    <div class="nav-item" onclick="switchTab('menu', this)"><i class="fas fa-book"></i> <span class="nav-text">จัดการเมนูอาหาร</span></div>
-    <div class="nav-item" onclick="switchTab('report', this)"><i class="fas fa-chart-line"></i> <span class="nav-text">รายงานรายได้</span></div>
-    <div class="nav-item mt-5 text-danger" onclick="location.reload()"><i class="fas fa-sync"></i> <span class="nav-text">รีเฟรชระบบ</span></div>
+    <div class="nav-item active" onclick="switchTab('dashboard', this)"><i class="fas fa-home"></i> <span>หน้าหลัก</span></div>
+    <div class="nav-item" onclick="switchTab('menu', this)"><i class="fas fa-book"></i> <span>จัดการเมนู</span></div>
+    <div class="nav-item" onclick="switchTab('report', this)"><i class="fas fa-chart-line"></i> <span>สรุปรายได้</span></div>
+    <div class="nav-item mt-5 text-danger" onclick="location.reload()"><i class="fas fa-sync"></i> <span>รีเฟรชระบบ</span></div>
 </div>
 
 <div class="main">
-    <div class="d-lg-none mb-3 d-flex justify-content-between">
-        <h4 class="fw-bold">Admin Pro</h4>
-        <div>
-            <button class="btn btn-outline-dark btn-sm me-1" onclick="switchTab('dashboard')">ออเดอร์</button>
-            <button class="btn btn-outline-dark btn-sm" onclick="switchTab('menu')">เมนู</button>
-        </div>
-    </div>
-
     <div id="view-dashboard">
         <div class="row mb-4">
-            <div class="col-6"><div class="card p-3 border-start border-4 border-primary"><h3><i class="fas fa-chair"></i> <span id="activeTables">0</span></h3><small>โต๊ะเปิดอยู่</small></div></div>
-            <div class="col-6"><div class="card p-3 border-start border-4 border-success"><h3><i class="fas fa-coins"></i> <span id="pendingSales">0</span></h3><small>ยอดรอเก็บ</small></div></div>
+            <div class="col-6"><div class="card p-3 border-start border-4 border-primary shadow-sm"><h3><span id="activeTables">0</span></h3><small class="text-muted">โต๊ะเปิดอยู่</small></div></div>
+            <div class="col-6"><div class="card p-3 border-start border-4 border-success shadow-sm"><h3><span id="pendingSales">0</span></h3><small class="text-muted">ยอดรอชำระ</small></div></div>
         </div>
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold m-0"><i class="fas fa-list"></i> รายการออเดอร์ (Update: 5s)</h5>
-            <div class="spinner-grow spinner-grow-sm text-success" role="status" id="loadingSpinner"></div>
-        </div>
-        <div class="row" id="orderGrid"><div class="col-12 text-center py-5">Loading...</div></div>
+        <h5 class="fw-bold mb-3">รายการออเดอร์ล่าสุด</h5>
+        <div id="orderGrid" class="row"></div>
     </div>
 
     <div id="view-menu" class="d-none">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3>จัดการเมนู</h3>
-            <button class="btn btn-primary" onclick="openMenuModal()">+ เพิ่มเมนู</button>
+            <h3>เมนูอาหาร</h3>
+            <button class="btn btn-primary" onclick="openMenuModal()"><i class="fas fa-plus"></i> เพิ่มเมนูใหม่</button>
         </div>
-        <div class="card"><div class="card-body p-0 table-responsive">
-            <table class="table table-hover mb-0 align-middle">
-                <thead class="table-light"><tr><th>รูป</th><th>ชื่อ</th><th>ราคา</th><th>หมวด</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
-                <tbody id="menuTableBody"><tr><td colspan="6" class="text-center py-4">Loading...</td></tr></tbody>
+        <div class="table-responsive bg-white rounded shadow-sm p-3">
+            <table class="table align-middle">
+                <thead class="table-light"><tr><th>รูป</th><th>ชื่อเมนู</th><th>ราคา</th><th>หมวดหมู่</th><th>จัดการ</th></tr></thead>
+                <tbody id="menuTableBody"></tbody>
             </table>
-        </div></div>
+        </div>
     </div>
 
     <div id="view-report" class="d-none">
-        <h3 class="mb-4">📊 รายงานรายได้</h3>
-        <ul class="nav nav-tabs mb-3">
-            <li class="nav-item-tab"><a class="nav-link active" data-bs-toggle="tab" href="#daily" onclick="renderReport('daily')">รายวัน</a></li>
-            <li class="nav-item-tab"><a class="nav-link" data-bs-toggle="tab" href="#monthly" onclick="renderReport('monthly')">รายเดือน</a></li>
-        </ul>
-        <div class="card p-3 mb-3 bg-light">
-            <div class="d-flex justify-content-between align-items-center">
-                <div><h5 class="text-muted mb-0">ยอดขายรวม</h5><h2 class="fw-bold text-success mb-0" id="reportTotalSales">0 ฿</h2></div>
-                <div class="text-end"><h5 class="text-muted mb-0">ออเดอร์</h5><h3 class="fw-bold text-primary mb-0" id="reportTotalOrders">0</h3></div>
-            </div>
-        </div>
-        <div id="reportContent" class="table-responsive bg-white rounded shadow-sm p-3"></div>
+        <h3 class="mb-4">📈 รายงานยอดขาย</h3>
+        <div class="card p-4 mb-3 bg-light border-0 shadow-sm"><div class="row text-center">
+            <div class="col-6"><h6>ยอดขายรวม</h6><h2 id="reportTotalSales" class="text-success fw-bold">0 ฿</h2></div>
+            <div class="col-6"><h6>ออเดอร์ทั้งหมด</h6><h2 id="reportTotalOrders" class="text-primary fw-bold">0</h2></div>
+        </div></div>
+        <div id="reportContent" class="bg-white rounded p-3 shadow-sm"></div>
     </div>
 </div>
 
-<div class="modal fade" id="menuModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title" id="modalTitle">เพิ่มเมนู</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body">
-                <form id="menuForm">
-                    <input type="hidden" id="editMenuId">
-                    <input type="hidden" id="menuExistingUrl">
-                    <div class="mb-3 text-center">
-                        <label class="img-preview-box" for="menuImageFile" title="คลิกเพื่อเลือกรูปภาพ">
-                            <img id="previewImg" src="https://placehold.co/150x150?text=Upload+Image" alt="Preview">
-                            <input type="file" id="menuImageFile" accept="image/*" hidden onchange="previewImage(event)">
-                        </label>
-                        <small class="text-muted d-block mt-2">คลิกที่กรอบเพื่ออัปโหลดรูป</small>
-                    </div>
-                    <input type="text" id="menuName" class="form-control mb-2" placeholder="ชื่อเมนู" required>
-                    <div class="row mb-3">
-                        <div class="col-6"><input type="number" id="menuPrice" class="form-control" placeholder="ราคา" required></div>
-                        <div class="col-6">
-                            <select id="menuCategory" class="form-select">
-                                <option value="สเต็ก">สเต็ก</option>
-                                <option value="เบอร์เกอร์">เบอร์เกอร์</option>
-                                <option value="อาหารจานเดี่ยว">อาหารจานเดี่ยว</option>
-                                <option value="ของทานเล่น">ของทานเล่น</option>
-                                <option value="ของหวาน">ของหวาน</option>
-                                <option value="เครื่องดื่ม">เครื่องดื่ม</option>
-                                <option value="กาแฟ">กาแฟ</option>
-                                <option value="อื่นๆ">อื่นๆ</option>
-                            </select>
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <label class="fw-bold">ตัวเลือกเสริม</label>
-                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addToppingInput()">+ เพิ่ม</button>
-                    </div>
-                    <div id="toppingContainer" class="bg-light p-2 rounded" style="max-height: 200px; overflow-y: auto;"></div>
-                </form>
+<div class="modal fade" id="menuModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">ข้อมูลเมนู</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+        <form id="menuForm">
+            <input type="hidden" id="editMenuId">
+            <input type="hidden" id="menuExistingUrl">
+            <div class="mb-3">
+                <label class="img-preview-box" for="menuImageFile">
+                    <img id="previewImg" src="https://placehold.co/150x150?text=เลือกรูปภาพ" alt="Preview">
+                    <input type="file" id="menuImageFile" accept="image/*" hidden onchange="previewImage(event)">
+                </label>
             </div>
-            <div class="modal-footer"><button type="button" class="btn btn-primary w-100" onclick="saveMenu()">บันทึกข้อมูล</button></div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="billModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header bg-light">
-                <h5 class="modal-title fw-bold"><i class="fas fa-receipt"></i> จัดการโต๊ะ <span id="modalTableNo" class="text-primary"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-5 order-md-2 border-start">
-                        <h6 class="fw-bold text-muted mb-3">รายการที่สั่งแล้ว</h6>
-                        <div class="table-responsive border rounded" style="max-height: 400px; overflow-y: auto;">
-                            <table class="table table-sm mb-0">
-                                <thead class="table-light sticky-top"><tr><th>รายการ</th><th width="100">จำนวน</th><th class="text-end">รวม</th></tr></thead>
-                                <tbody id="billItemsDisplay"></tbody>
-                            </table>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top bg-light p-3 rounded">
-                            <h5 class="text-muted m-0">ยอดสุทธิ</h5>
-                            <h3 class="text-primary fw-bold m-0" id="modalTotal">0 ฿</h3>
-                        </div>
-                        <button class="btn btn-success fw-bold w-100 mt-3 py-2" onclick="checkBin()">💰 รับเงิน / ปิดโต๊ะ</button>
-                    </div>
-                    <div class="col-md-7 order-md-1 mb-3">
-                        <h6 class="fw-bold text-muted mb-2">เพิ่มรายการใหม่</h6>
-                        <div class="d-flex gap-2 overflow-auto pb-2 mb-2" id="billMenuCategories"></div>
-                        <div class="row g-2" id="billMenuGrid" style="max-height: 450px; overflow-y: auto; align-content: flex-start;"></div>
-                    </div>
+            <input type="text" id="menuName" class="form-control mb-2" placeholder="ชื่อเมนู" required>
+            <div class="row g-2 mb-3">
+                <div class="col-6"><input type="number" id="menuPrice" class="form-control" placeholder="ราคา" required></div>
+                <div class="col-6">
+                    <select id="menuCategory" class="form-select">
+                        <option value="สเต็ก">สเต็ก</option><option value="เบอร์เกอร์">เบอร์เกอร์</option>
+                        <option value="อาหารจานเดี่ยว">อาหารจานเดี่ยว</option><option value="เครื่องดื่ม">เครื่องดื่ม</option>
+                    </select>
                 </div>
             </div>
-        </div>
+            <div id="toppingContainer" class="p-2 bg-light rounded mb-2"></div>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addToppingInput()">+ เพิ่มตัวเลือก</button>
+        </form>
     </div>
-</div>
+    <div class="modal-footer"><button class="btn btn-primary w-100" onclick="saveMenu()">บันทึก</button></div>
+</div></div></div>
+
+<div class="modal fade" id="billModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5>บิลโต๊ะ <span id="modalTableNo"></span></h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+        <table class="table table-sm"><tbody id="billItemsDisplay"></tbody></table>
+        <h4 class="text-end fw-bold">ยอดสุทธิ: <span id="modalTotal" class="text-primary"></span></h4>
+    </div>
+    <div class="modal-footer"><button class="btn btn-success w-100 py-2 fw-bold" onclick="checkBin()">💰 ยืนยันรับเงิน / ปิดโต๊ะ</button></div>
+</div></div></div>
 
 <script>
-    // --- ใส่ URL Web App อันล่าสุดของคุณตรงนี้ ---
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz6tXDr5aHNDsn9mlbglnKHSnqsgixeKObMbGWxlVRXGOzJpRrtJp7AUX-P3WprVMBH/exec'; 
+    // !!! ใส่ URL ของ Web App จาก Apps Script ตรงนี้ !!!
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxRpU3n5WTVFM70grPzsaJVIeZ9HW3-PpE_RgQF2ZiMPqADa7BYZrqUjs6e3hIo84Ms/exec';
 
     let allMenus = [];
     let currentOrders = [];
     let selectedOrder = null;
-    let currentBillCategory = 'ทั้งหมด';
-    let pollInterval;
 
     fetchOrders(); 
-    startPolling(); 
-
-    function startPolling() {
-        if(pollInterval) clearInterval(pollInterval);
-        pollInterval = setInterval(fetchOrders, 5000); 
-    }
-
-    function toggleSidebar() { document.body.classList.toggle('sidebar-mini'); }
+    setInterval(fetchOrders, 7000);
 
     function switchTab(view, btn) {
         document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('d-none'));
         document.getElementById('view-'+view).classList.remove('d-none');
-        if(btn && document.querySelector('.d-lg-block')) {
-            document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+        if(btn) {
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
             btn.classList.add('active');
         }
         if(view === 'menu') fetchMenu();
-        if(view === 'dashboard') fetchOrders();
-        if(view === 'report') renderReport('daily');
+        if(view === 'report') renderReport();
     }
 
     async function apiRequest(params, method = 'GET') {
-        try {
-            let options = { method: method };
-            let url = SCRIPT_URL;
-            if (method === 'GET') {
-                url += `?${new URLSearchParams(params).toString()}`;
-            } else {
-                options.body = JSON.stringify(params);
-            }
-            const res = await fetch(url, options);
-            return await res.json();
-        } catch (error) {
-            console.error("API Error", error);
-            return null;
-        }
+        let url = SCRIPT_URL;
+        let options = { method: method };
+        if (method === 'GET') url += `?${new URLSearchParams(params).toString()}`;
+        else options.body = JSON.stringify(params);
+        return await fetch(url, options).then(res => res.json());
     }
 
     async function fetchOrders() {
         const data = await apiRequest({ action: 'getOrders' });
-        if(!data) return;
+        if(!data || data.error) return;
         currentOrders = data.filter(o => o.status !== 'paid').sort((a,b) => b.id - a.id);
         renderDashboard();
     }
@@ -230,290 +147,140 @@
         const grid = document.getElementById('orderGrid');
         grid.innerHTML = '';
         document.getElementById('activeTables').innerText = currentOrders.length;
-        document.getElementById('pendingSales').innerText = currentOrders.reduce((a,b)=>a+b.total_price,0).toLocaleString();
-        
-        if(currentOrders.length === 0) { grid.innerHTML = '<div class="col-12 text-center text-muted py-5">ยังไม่มีออเดอร์ (ว่าง)</div>'; return; }
+        document.getElementById('pendingSales').innerText = currentOrders.reduce((s,o)=>s+o.total_price,0).toLocaleString() + " ฿";
         
         currentOrders.forEach(o => {
-            let badge = o.status==='pending'?'bg-warning':(o.status==='cooking'?'bg-danger':'bg-success');
-            let statusText = o.status==='pending'?'รอทำ':(o.status==='cooking'?'กำลังทำ':'เสิร์ฟแล้ว');
-            let btn = '';
-            if(o.status==='pending') btn = `<button class="btn btn-outline-warning w-100 btn-sm mb-2" onclick="setStatus(${o.id},'cooking')">🔥 ปรุง</button>`;
-            else if(o.status==='cooking') btn = `<button class="btn btn-success w-100 btn-sm mb-2" onclick="setStatus(${o.id},'served')">✅ เสิร์ฟ</button>`;
-
             grid.innerHTML += `
-                <div class="col-md-6 col-lg-4 col-xl-3">
-                    <div class="card p-3 mb-3 border-start border-4 border-${badge === 'bg-warning' ? 'warning' : (badge === 'bg-danger' ? 'danger' : 'success')}">
-                        <div class="d-flex justify-content-between mb-2"><h5 class="m-0 fw-bold">โต๊ะ ${o.table_no}</h5><span class="badge ${badge}">${statusText}</span></div>
-                        <div class="bg-light p-2 rounded mb-2 small" style="max-height:100px;overflow-y:auto">
-                            ${o.items.map(i=> `<div>- ${i.name} ${i.option?`(${i.option})`:''} <span class="text-muted">x${i.qty||1}</span></div>`).join('')}
+                <div class="col-md-4 mb-3">
+                    <div class="card border-0 shadow-sm border-start border-4 border-warning p-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold mb-0">โต๊ะ ${o.table_no}</h5>
+                            <span class="badge bg-warning text-dark">รอดำเนินการ</span>
                         </div>
-                        <h5 class="text-end fw-bold text-primary">${o.total_price.toLocaleString()} ฿</h5>
-                        ${btn}
-                        <button class="btn btn-dark w-100 btn-sm" onclick="openBill(${o.id})">แก้ไข / เช็คบิล</button>
+                        <hr class="my-2">
+                        <div class="small text-muted mb-2">${o.items.map(i => i.name + ' x' + i.qty).join(', ')}</div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="m-0 text-primary fw-bold">${o.total_price.toLocaleString()} ฿</h5>
+                            <button class="btn btn-dark btn-sm" onclick="openBill(${o.id})">เช็คบิล</button>
+                        </div>
                     </div>
                 </div>`;
         });
     }
 
-    async function setStatus(id, st) { 
-        Swal.showLoading();
-        await apiRequest({ action: 'updateStatus', id: id, status: st }, 'POST');
-        Swal.close();
-        fetchOrders();
-    }
-
-    async function openBill(id) {
-        selectedOrder = currentOrders.find(o => o.id === id);
-        if(!selectedOrder) return;
-        if(allMenus.length === 0) await fetchMenu();
-        
+    function openBill(id) {
+        selectedOrder = currentOrders.find(o => String(o.id) === String(id));
         document.getElementById('modalTableNo').innerText = selectedOrder.table_no;
-        renderBillItems();
-        renderBillCategories();
-        renderBillMenuGrid('ทั้งหมด');
+        document.getElementById('modalTotal').innerText = selectedOrder.total_price.toLocaleString() + " ฿";
+        document.getElementById('billItemsDisplay').innerHTML = selectedOrder.items.map(i => 
+            `<tr><td>${i.name}</td><td>x${i.qty}</td><td class="text-end">${i.price.toLocaleString()}</td></tr>`).join('');
         new bootstrap.Modal(document.getElementById('billModal')).show();
     }
 
-    function renderBillCategories() {
-        const cats = ['ทั้งหมด', 'สเต็ก', 'เบอร์เกอร์', 'อาหารจานเดี่ยว', 'ของทานเล่น', 'ของหวาน', 'เครื่องดื่ม', 'กาแฟ', 'อื่นๆ'];
-        const container = document.getElementById('billMenuCategories');
-        container.innerHTML = cats.map(c => 
-            `<button class="btn btn-sm ${c===currentBillCategory?'btn-primary':'btn-outline-secondary'} text-nowrap" onclick="changeBillCategory('${c}')">${c}</button>`
-        ).join('');
-    }
-
-    function changeBillCategory(cat) {
-        currentBillCategory = cat;
-        renderBillCategories();
-        renderBillMenuGrid(cat);
-    }
-
-    function renderBillMenuGrid(cat) {
-        const grid = document.getElementById('billMenuGrid');
-        grid.innerHTML = '';
-        const items = cat === 'ทั้งหมด' ? allMenus : allMenus.filter(m => m.category === cat);
-        if(items.length === 0) { grid.innerHTML = '<div class="text-center w-100 text-muted mt-3">ไม่มีรายการ</div>'; return; }
-        
-        items.forEach(m => {
-            const imgHtml = m.image_url ? `<img src="${m.image_url}" style="width:40px;height:40px;border-radius:5px;object-fit:cover;" class="me-2">` : '';
-            grid.innerHTML += `
-                <div class="col-6 col-lg-4">
-                    <button class="btn w-100 menu-selector-btn d-flex align-items-center" onclick="addMenuToBill(${m.id})">
-                        ${imgHtml} <div style="overflow:hidden;"><div class="fw-bold text-truncate">${m.name}</div><small class="text-success">${m.price} ฿</small></div>
-                    </button>
-                </div>`;
-        });
-    }
-
-    function renderBillItems() {
-        const tbody = document.getElementById('billItemsDisplay');
-        tbody.innerHTML = '';
-        let total = 0;
-        selectedOrder.items.forEach((item, index) => {
-            const qty = item.qty || 1;
-            const itemTotal = item.price * qty;
-            total += itemTotal;
-            tbody.innerHTML += `<tr><td><div class="fw-bold">${item.name}</div>${item.option?`<small class="text-muted">${item.option}</small>`:''}</td><td><div class="input-group input-group-sm" style="width:90px;"><button class="btn btn-outline-secondary px-2" onclick="adjustItem(${index},-1)">-</button><span class="form-control text-center px-0 bg-white">${qty}</span><button class="btn btn-outline-secondary px-2" onclick="adjustItem(${index},1)">+</button></div></td><td class="text-end fw-bold">${itemTotal.toLocaleString()}</td></tr>`;
-        });
-        document.getElementById('modalTotal').innerText = total.toLocaleString() + " ฿";
-    }
-
-    async function adjustItem(idx, delta) {
-        selectedOrder.items[idx].qty = (selectedOrder.items[idx].qty || 1) + delta;
-        if (selectedOrder.items[idx].qty <= 0) { 
-            if(!confirm('ลบรายการนี้?')) { selectedOrder.items[idx].qty=1; return; } 
-            selectedOrder.items.splice(idx,1); 
-        }
-        saveOrderUpdate();
-    }
-
-    async function addMenuToBill(menuId) {
-        const m = allMenus.find(x => x.id === menuId);
-        if(!m) return;
-        const exist = selectedOrder.items.find(i => i.id === m.id && !i.option);
-        if(exist) { exist.qty = (exist.qty || 1) + 1; } else { selectedOrder.items.push({ id: m.id, name: m.name, price: m.price, qty: 1, option: '', note: '' }); }
-        
-        const Toast = Swal.mixin({ toast: true, position: 'center', showConfirmButton: false, timer: 800 });
-        Toast.fire({ icon: 'success', title: 'เพิ่ม ' + m.name });
-        saveOrderUpdate();
-    }
-
-    async function saveOrderUpdate() {
-        selectedOrder.total_price = selectedOrder.items.reduce((s,i)=>s+(i.price*(i.qty||1)),0);
-        renderBillItems();
-        await apiRequest({ action: 'updateOrderItems', id: selectedOrder.id, items: selectedOrder.items, total_price: selectedOrder.total_price }, 'POST');
-    }
-
-    // --- แก้ไข: รับเงินแล้วลบออกจากหน้าจอทันที ---
+    /**
+     * รับเงินและลบ UI ทันทีเพื่อแก้ปัญหา Order Loop
+     */
     async function checkBin() {
-        if(confirm('ยืนยันรับเงินและปิดโต๊ะ?')) {
-            const orderId = selectedOrder.id;
-            
-            // ปิด Modal ทันที
-            const modal = bootstrap.Modal.getInstance(document.getElementById('billModal'));
-            modal.hide();
-
-            Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
-
-            // ส่งข้อมูลไป Backend
-            await apiRequest({ action: 'updateStatus', id: orderId, status: 'paid' }, 'POST');
-
-            // ลบออกจากหน้าจอทันที (ไม่ต้องรอ fetch)
-            currentOrders = currentOrders.filter(o => o.id !== orderId);
-            renderDashboard();
-
-            Swal.close();
-            fetchOrders(); 
-        }
+        if(!confirm('ยืนยันว่าได้รับเงินแล้ว?')) return;
+        const id = selectedOrder.id;
+        bootstrap.Modal.getInstance(document.getElementById('billModal')).hide();
+        Swal.fire({title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+        
+        await apiRequest({ action: 'updateStatus', id: id, status: 'paid' }, 'POST');
+        
+        // Optimistic Update: ลบจากหน้าจอทันที
+        currentOrders = currentOrders.filter(o => String(o.id) !== String(id));
+        renderDashboard();
+        Swal.fire({icon:'success', title:'ปิดยอดเรียบร้อย', timer:1000, showConfirmButton:false});
     }
 
-    // --- MENU MANAGEMENT ---
     async function fetchMenu() {
         const data = await apiRequest({ action: 'getMenu' });
-        if(data) {
-            allMenus = data;
-            const tbody = document.getElementById('menuTableBody');
-            tbody.innerHTML = '';
-            
-            if(allMenus.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">ยังไม่มีเมนู</td></tr>';
-                return;
-            }
-
-            allMenus.forEach(m => {
-                const imgShow = m.image_url && m.image_url.startsWith('http') 
-                    ? m.image_url 
-                    : 'https://placehold.co/100x100?text=No+Img'; // ใช้ placehold.co แทน
-
-                tbody.innerHTML += `
-                <tr>
-                    <td><img src="${imgShow}" class="table-img" onerror="this.src='https://placehold.co/100x100?text=Error'"></td>
-                    <td><div class="fw-bold">${m.name}</div><small class="text-muted">ID: ${m.id}</small></td>
-                    <td class="fw-bold text-success">${m.price} ฿</td>
-                    <td><span class="badge bg-info text-dark">${m.category}</span></td>
-                    <td>${m.is_available ? '<span class="badge bg-success">ขาย</span>' : '<span class="badge bg-danger">หมด</span>'}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary mb-1" onclick="editMenu(${m.id})"><i class="fas fa-edit"></i> แก้ไข</button>
-                        <button class="btn btn-sm btn-outline-danger mb-1" onclick="deleteMenu(${m.id})"><i class="fas fa-trash"></i> ลบ</button>
-                    </td>
-                </tr>`;
-            });
-        }
+        allMenus = data;
+        const tbody = document.getElementById('menuTableBody');
+        tbody.innerHTML = data.map(m => `
+            <tr>
+                <td><img src="${m.image_url || 'https://placehold.co/80x80?text=No+Img'}" class="table-img" onerror="this.src='https://placehold.co/80x80?text=Error'"></td>
+                <td><div class="fw-bold">${m.name}</div></td>
+                <td>${m.price} ฿</td>
+                <td><span class="badge bg-light text-dark border">${m.category}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editMenu(${m.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteMenu(${m.id})"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`).join('');
     }
 
     function previewImage(e) { 
         if(e.target.files[0]) {
             const reader = new FileReader();
-            reader.onload = function(evt) { document.getElementById('previewImg').src = evt.target.result; };
+            reader.onload = (evt) => document.getElementById('previewImg').src = evt.target.result;
             reader.readAsDataURL(e.target.files[0]);
         }
     }
 
-    function addToppingInput(name='', price=0) {
-        const div = document.createElement('div');
-        div.className = 'input-group mb-2 topping-row';
-        div.innerHTML = `<input type="text" class="form-control topping-name" placeholder="ชื่อ" value="${name}"><input type="number" class="form-control topping-price" placeholder="ราคา" value="${price}"><button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">X</button>`;
-        document.getElementById('toppingContainer').appendChild(div);
-    }
-
-    function openMenuModal() { 
-        document.getElementById('menuForm').reset(); 
-        document.getElementById('editMenuId').value=""; 
-        document.getElementById('menuExistingUrl').value="";
-        document.getElementById('previewImg').src = 'https://placehold.co/150x150?text=Upload+Image';
-        document.getElementById('toppingContainer').innerHTML=''; 
-        addToppingInput(); 
-        new bootstrap.Modal(document.getElementById('menuModal')).show(); 
-    }
-
-    function editMenu(id) {
-        const m = allMenus.find(x=>x.id===id);
-        document.getElementById('editMenuId').value=m.id; 
-        document.getElementById('menuName').value=m.name; 
-        document.getElementById('menuPrice').value=m.price; 
-        document.getElementById('menuCategory').value=m.category; 
-        document.getElementById('menuExistingUrl').value = m.image_url || "";
-        document.getElementById('previewImg').src = m.image_url || "https://placehold.co/150x150?text=No+Image";
-        document.getElementById('menuImageFile').value = ""; 
-
-        document.getElementById('toppingContainer').innerHTML='';
-        if(m.options && m.options.length) m.options.forEach(o=>addToppingInput(o.name,o.price)); else addToppingInput();
+    function openMenuModal() {
+        document.getElementById('menuForm').reset();
+        document.getElementById('editMenuId').value = "";
+        document.getElementById('previewImg').src = 'https://placehold.co/150x150?text=เลือกรูป';
+        document.getElementById('toppingContainer').innerHTML = "";
         new bootstrap.Modal(document.getElementById('menuModal')).show();
     }
 
     async function saveMenu() {
         const id = document.getElementById('editMenuId').value;
-        const name = document.getElementById('menuName').value;
-        const price = parseInt(document.getElementById('menuPrice').value);
-        const category = document.getElementById('menuCategory').value;
-        const existingUrl = document.getElementById('menuExistingUrl').value;
-        
-        const tops = []; 
-        document.querySelectorAll('.topping-row').forEach(r=>{ 
-            const n=r.querySelector('.topping-name').value.trim(); 
-            if(n) tops.push({name:n, price:parseInt(r.querySelector('.topping-price').value||0)}) 
-        });
-
-        let payload = {
+        const payload = {
             action: id ? 'editMenu' : 'addMenu',
-            id: id, name, price, category, options: tops,
-            image_url: existingUrl 
+            id: id,
+            name: document.getElementById('menuName').value,
+            price: parseInt(document.getElementById('menuPrice').value),
+            category: document.getElementById('menuCategory').value,
+            image_url: document.getElementById('menuExistingUrl').value,
+            options: [] // ตัวอย่าง Toppings สามารถเพิ่มฟังก์ชันเก็บค่าตรงนี้ได้
         };
 
         const fileInput = document.getElementById('menuImageFile');
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
-            const base64 = await new Promise(resolve => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.readAsDataURL(file);
+            payload.image_data = await new Promise(res => {
+                const r = new FileReader(); r.onload = e => res(e.target.result); r.readAsDataURL(file);
             });
-            payload.image_data = base64;
             payload.image_name = file.name;
         }
 
-        Swal.fire({ title: 'กำลังบันทึก...', text: 'กรุณารอสักครู่ (อาจช้าหากมีรูป)', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        Swal.fire({title:'บันทึกข้อมูล...', didOpen:()=>Swal.showLoading()});
         await apiRequest(payload, 'POST');
         Swal.close();
-        
-        bootstrap.Modal.getInstance(document.getElementById('menuModal')).hide(); 
+        bootstrap.Modal.getInstance(document.getElementById('menuModal')).hide();
         fetchMenu();
     }
 
-    async function deleteMenu(id) { 
-        if(confirm('ต้องการลบเมนูนี้?')) { 
-            Swal.showLoading();
-            await apiRequest({ action: 'deleteMenu', id: id }, 'POST');
-            Swal.close();
-            fetchMenu(); 
-        } 
+    async function deleteMenu(id) {
+        if(!confirm('ลบเมนูนี้?')) return;
+        Swal.fire({title:'ลบเมนู...', didOpen:()=>Swal.showLoading()});
+        await apiRequest({action: 'deleteMenu', id: id}, 'POST');
+        Swal.close();
+        fetchMenu();
     }
 
-    async function renderReport(mode) {
-        document.getElementById('reportContent').innerHTML='Loading...';
-        const allData = await apiRequest({ action: 'getOrders' });
-        if(!allData) return;
-
-        const data = allData.filter(o => o.status === 'paid');
-        let summary={}, totalS=0, totalO=0;
+    async function renderReport() {
+        const data = await apiRequest({ action: 'getOrders' });
+        const paid = data.filter(o => o.status === 'paid');
+        document.getElementById('reportTotalSales').innerText = paid.reduce((s,o)=>s+o.total_price,0).toLocaleString() + " ฿";
+        document.getElementById('reportTotalOrders').innerText = paid.length;
         
-        data.forEach(o=>{
-            const d = new Date(o.created_at || o.id);
-            const k = mode==='daily'?d.toLocaleDateString('th-TH'):d.toLocaleDateString('th-TH',{month:'long',year:'numeric'});
-            if(!summary[k]) summary[k]={sales:0,count:0};
-            summary[k].sales+=o.total_price; summary[k].count++; totalS+=o.total_price; totalO++;
+        let html = '<table class="table table-sm"><thead><tr><th>วัน</th><th>ยอดขาย</th><th>บิล</th></tr></thead><tbody>';
+        const summary = {};
+        paid.forEach(o => {
+            const date = new Date(o.created_at || o.id).toLocaleDateString('th-TH');
+            if(!summary[date]) summary[date] = {total: 0, count: 0};
+            summary[date].total += o.total_price;
+            summary[date].count++;
         });
-
-        document.getElementById('reportTotalSales').innerText=totalS.toLocaleString()+' ฿';
-        document.getElementById('reportTotalOrders').innerText=totalO;
-        
-        let html = `<table class="table table-striped"><thead><tr><th>ช่วงเวลา</th><th class="text-end">ยอดขาย</th><th class="text-center">ออเดอร์</th><th>กราฟ</th></tr></thead><tbody>`;
-        const max = Math.max(...Object.values(summary).map(s=>s.sales), 100);
-        for(const [k,v] of Object.entries(summary)) {
-            html += `<tr><td>${k}</td><td class="text-end fw-bold">${v.sales.toLocaleString()}</td><td class="text-center">${v.count}</td><td><div class="bar-container"><div class="bar-fill" style="width:${(v.sales/max)*100}%"></div></div></td></tr>`;
+        for(let d in summary) {
+            html += `<tr><td>${d}</td><td>${summary[d].total.toLocaleString()}</td><td>${summary[d].count}</td></tr>`;
         }
-        document.getElementById('reportContent').innerHTML = html+'</tbody></table>';
+        document.getElementById('reportContent').innerHTML = html + '</tbody></table>';
     }
 </script>
 </body>
