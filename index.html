@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restaurant Pro - Admin (Complete)</title>
+    <title>Restaurant Pro - Admin (Auto Detect)</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -197,11 +197,46 @@
     let currentOrders = [];
     let selectedOrder = null;
     let currentBillCategory = 'ทั้งหมด';
+    let lastOrderCount = 0; // เก็บจำนวนออเดอร์ล่าสุดเพื่อใช้ตรวจจับการเปลี่ยนแปลง
 
     // --- Initialization ---
     document.addEventListener('DOMContentLoaded', () => {
         fetchOrders();
         setupRealtime();
+
+        // --- เพิ่มการตรวจจับออเดอร์ใหม่ทุก 5 วินาที (Polling Detection) ---
+        // นี่คือระบบสำรอง (Backup) กรณี Realtime หลุด หรือ Internet กระตุก
+        setInterval(async () => {
+            // เช็คจำนวนออเดอร์ที่ยังไม่จ่ายเงิน (count: 'exact', head: true คือเอาแค่จำนวน ไม่เอาข้อมูล เพื่อความเร็ว)
+            const { count, error } = await db
+                .from('orders')
+                .select('*', { count: 'exact', head: true })
+                .neq('status', 'paid');
+
+            if (!error && count !== null) {
+                // กรณีมีออเดอร์เพิ่มขึ้นมากกว่าที่แสดงอยู่
+                if (count > lastOrderCount) {
+                    console.log("New order detected via Polling!");
+                    playNotification();
+                    Swal.mixin({ 
+                        toast: true, 
+                        position: 'top-end', 
+                        showConfirmButton: false, 
+                        timer: 4000 
+                    }).fire({ 
+                        icon: 'success', 
+                        title: `🔔 พบออเดอร์ใหม่! (รวม ${count} โต๊ะ)` 
+                    });
+                    fetchOrders(); // รีโหลดข้อมูลใหม่ทันที
+                } 
+                // กรณีจำนวนลดลง (เช่น มีการเช็คบิลไปแล้ว) หรือไม่เท่ากัน ให้ Sync เงียบๆ
+                else if (count < lastOrderCount) {
+                    fetchOrders();
+                }
+                // อัปเดตตัวแปรนับจำนวน
+                lastOrderCount = count;
+            }
+        }, 5000); // ทำงานทุก 5 วินาที
     });
 
     function setupRealtime() {
@@ -235,7 +270,9 @@
     async function fetchOrders() {
         const { data, error } = await db.from('orders').select('*').neq('status', 'paid').order('created_at', {ascending:false}); 
         if(error) { console.error(error); return; }
+        
         currentOrders = data || [];
+        lastOrderCount = currentOrders.length; // อัปเดตจำนวนออเดอร์ปัจจุบันเสมอ เพื่อให้ระบบตรวจจับทำงานแม่นยำ
         renderDashboard();
     }
 
@@ -269,7 +306,7 @@
         });
     }
 
-    async function setStatus(id, st) { await db.from('orders').update({status:st}).eq('id', id); }
+    async function setStatus(id, st) { await db.from('orders').update({status:st}).eq('id', id); fetchOrders(); }
 
     // --- Bill Logic ---
     async function openBill(id) {
@@ -366,6 +403,7 @@
         if(confirm('ยืนยันรับเงินและปิดโต๊ะนี้?')) {
             await db.from('orders').update({status:'paid'}).eq('id', selectedOrder.id);
             bootstrap.Modal.getInstance(document.getElementById('billModal')).hide();
+            fetchOrders(); // เรียก fetchOrders เพื่ออัปเดตหน้าจอหลังเช็คบิล
         }
     }
 
@@ -397,14 +435,10 @@
         document.getElementById('toppingContainer').appendChild(div);
     }
 
-    // --- FIXED: Image Reset Logic Here ---
     function openMenuModal() { 
         document.getElementById('menuForm').reset(); 
         document.getElementById('editMenuId').value=""; 
-        
-        // บรรทัดนี้คือหัวใจสำคัญของการแก้ปัญหา
         document.getElementById('previewImg').src = 'https://via.placeholder.com/150?text=Upload';
-        
         document.getElementById('toppingContainer').innerHTML=''; 
         addToppingInput(); 
         new bootstrap.Modal(document.getElementById('menuModal')).show(); 
@@ -433,7 +467,6 @@
         document.querySelectorAll('.topping-row').forEach(r=>{ const n=r.querySelector('.topping-name').value.trim(); if(n) tops.push({name:n, price:parseInt(r.querySelector('.topping-price').value||0)}) });
         
         let img = document.getElementById('previewImg').src;
-        // กรณีเป็น Placeholder ให้ถือว่าไม่มีรูป
         if(img.includes('via.placeholder.com')) img = "";
 
         const fileIn = document.getElementById('menuImageFile');
