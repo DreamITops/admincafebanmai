@@ -171,7 +171,7 @@
 </div>
 
 <script>
-    // ใช้ SCRIPT_URL เดิมของคุณ
+    // --- ใส่ URL Web App อันล่าสุดของคุณตรงนี้ ---
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz6tXDr5aHNDsn9mlbglnKHSnqsgixeKObMbGWxlVRXGOzJpRrtJp7AUX-P3WprVMBH/exec'; 
 
     let allMenus = [];
@@ -222,8 +222,7 @@
     async function fetchOrders() {
         const data = await apiRequest({ action: 'getOrders' });
         if(!data) return;
-        // ปรับการกรองสถานะให้แม่นยำขึ้น
-        currentOrders = data.filter(o => String(o.status).toLowerCase() !== 'paid').sort((a,b) => b.id - a.id);
+        currentOrders = data.filter(o => o.status !== 'paid').sort((a,b) => b.id - a.id);
         renderDashboard();
     }
 
@@ -244,7 +243,7 @@
 
             grid.innerHTML += `
                 <div class="col-md-6 col-lg-4 col-xl-3">
-                    <div class="card p-3 mb-3 border-start border-4 border-${badge === 'bg-warning' ? 'warning' : (badge === 'bg-danger' ? 'danger' : 'success')} shadow-sm">
+                    <div class="card p-3 mb-3 border-start border-4 border-${badge === 'bg-warning' ? 'warning' : (badge === 'bg-danger' ? 'danger' : 'success')}">
                         <div class="d-flex justify-content-between mb-2"><h5 class="m-0 fw-bold">โต๊ะ ${o.table_no}</h5><span class="badge ${badge}">${statusText}</span></div>
                         <div class="bg-light p-2 rounded mb-2 small" style="max-height:100px;overflow-y:auto">
                             ${o.items.map(i=> `<div>- ${i.name} ${i.option?`(${i.option})`:''} <span class="text-muted">x${i.qty||1}</span></div>`).join('')}
@@ -258,14 +257,14 @@
     }
 
     async function setStatus(id, st) { 
-        Swal.fire({ title: 'กำลังอัปเดต...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        Swal.showLoading();
         await apiRequest({ action: 'updateStatus', id: id, status: st }, 'POST');
         Swal.close();
         fetchOrders();
     }
 
     async function openBill(id) {
-        selectedOrder = currentOrders.find(o => String(o.id) === String(id));
+        selectedOrder = currentOrders.find(o => o.id === id);
         if(!selectedOrder) return;
         if(allMenus.length === 0) await fetchMenu();
         
@@ -276,21 +275,92 @@
         new bootstrap.Modal(document.getElementById('billModal')).show();
     }
 
-    // ฟังก์ชันย่อยของ Bill และ Menu คงเดิมตามที่คุณส่งมา...
-    // [รักษาฟังก์ชัน renderBillCategories, changeBillCategory, renderBillMenuGrid, renderBillItems, adjustItem, addMenuToBill, saveOrderUpdate ไว้ทั้งหมด]
+    function renderBillCategories() {
+        const cats = ['ทั้งหมด', 'สเต็ก', 'เบอร์เกอร์', 'อาหารจานเดี่ยว', 'ของทานเล่น', 'ของหวาน', 'เครื่องดื่ม', 'กาแฟ', 'อื่นๆ'];
+        const container = document.getElementById('billMenuCategories');
+        container.innerHTML = cats.map(c => 
+            `<button class="btn btn-sm ${c===currentBillCategory?'btn-primary':'btn-outline-secondary'} text-nowrap" onclick="changeBillCategory('${c}')">${c}</button>`
+        ).join('');
+    }
 
+    function changeBillCategory(cat) {
+        currentBillCategory = cat;
+        renderBillCategories();
+        renderBillMenuGrid(cat);
+    }
+
+    function renderBillMenuGrid(cat) {
+        const grid = document.getElementById('billMenuGrid');
+        grid.innerHTML = '';
+        const items = cat === 'ทั้งหมด' ? allMenus : allMenus.filter(m => m.category === cat);
+        if(items.length === 0) { grid.innerHTML = '<div class="text-center w-100 text-muted mt-3">ไม่มีรายการ</div>'; return; }
+        
+        items.forEach(m => {
+            const imgHtml = m.image_url ? `<img src="${m.image_url}" style="width:40px;height:40px;border-radius:5px;object-fit:cover;" class="me-2">` : '';
+            grid.innerHTML += `
+                <div class="col-6 col-lg-4">
+                    <button class="btn w-100 menu-selector-btn d-flex align-items-center" onclick="addMenuToBill(${m.id})">
+                        ${imgHtml} <div style="overflow:hidden;"><div class="fw-bold text-truncate">${m.name}</div><small class="text-success">${m.price} ฿</small></div>
+                    </button>
+                </div>`;
+        });
+    }
+
+    function renderBillItems() {
+        const tbody = document.getElementById('billItemsDisplay');
+        tbody.innerHTML = '';
+        let total = 0;
+        selectedOrder.items.forEach((item, index) => {
+            const qty = item.qty || 1;
+            const itemTotal = item.price * qty;
+            total += itemTotal;
+            tbody.innerHTML += `<tr><td><div class="fw-bold">${item.name}</div>${item.option?`<small class="text-muted">${item.option}</small>`:''}</td><td><div class="input-group input-group-sm" style="width:90px;"><button class="btn btn-outline-secondary px-2" onclick="adjustItem(${index},-1)">-</button><span class="form-control text-center px-0 bg-white">${qty}</span><button class="btn btn-outline-secondary px-2" onclick="adjustItem(${index},1)">+</button></div></td><td class="text-end fw-bold">${itemTotal.toLocaleString()}</td></tr>`;
+        });
+        document.getElementById('modalTotal').innerText = total.toLocaleString() + " ฿";
+    }
+
+    async function adjustItem(idx, delta) {
+        selectedOrder.items[idx].qty = (selectedOrder.items[idx].qty || 1) + delta;
+        if (selectedOrder.items[idx].qty <= 0) { 
+            if(!confirm('ลบรายการนี้?')) { selectedOrder.items[idx].qty=1; return; } 
+            selectedOrder.items.splice(idx,1); 
+        }
+        saveOrderUpdate();
+    }
+
+    async function addMenuToBill(menuId) {
+        const m = allMenus.find(x => x.id === menuId);
+        if(!m) return;
+        const exist = selectedOrder.items.find(i => i.id === m.id && !i.option);
+        if(exist) { exist.qty = (exist.qty || 1) + 1; } else { selectedOrder.items.push({ id: m.id, name: m.name, price: m.price, qty: 1, option: '', note: '' }); }
+        
+        const Toast = Swal.mixin({ toast: true, position: 'center', showConfirmButton: false, timer: 800 });
+        Toast.fire({ icon: 'success', title: 'เพิ่ม ' + m.name });
+        saveOrderUpdate();
+    }
+
+    async function saveOrderUpdate() {
+        selectedOrder.total_price = selectedOrder.items.reduce((s,i)=>s+(i.price*(i.qty||1)),0);
+        renderBillItems();
+        await apiRequest({ action: 'updateOrderItems', id: selectedOrder.id, items: selectedOrder.items, total_price: selectedOrder.total_price }, 'POST');
+    }
+
+    // --- แก้ไข: รับเงินแล้วลบออกจากหน้าจอทันที ---
     async function checkBin() {
         if(confirm('ยืนยันรับเงินและปิดโต๊ะ?')) {
             const orderId = selectedOrder.id;
+            
+            // ปิด Modal ทันที
             const modal = bootstrap.Modal.getInstance(document.getElementById('billModal'));
             modal.hide();
 
-            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            
+            Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
+
+            // ส่งข้อมูลไป Backend
             await apiRequest({ action: 'updateStatus', id: orderId, status: 'paid' }, 'POST');
 
-            // ลบออกจากหน้าจอทันทีแบบ String Comparison เพื่อแก้ปัญหา Loop
-            currentOrders = currentOrders.filter(o => String(o.id) !== String(orderId));
+            // ลบออกจากหน้าจอทันที (ไม่ต้องรอ fetch)
+            currentOrders = currentOrders.filter(o => o.id !== orderId);
             renderDashboard();
 
             Swal.close();
@@ -448,4 +518,3 @@
 </script>
 </body>
 </html>
-
