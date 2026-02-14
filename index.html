@@ -345,29 +345,58 @@
         await apiRequest({ action: 'updateOrderItems', id: selectedOrder.id, items: selectedOrder.items, total_price: selectedOrder.total_price }, 'POST');
     }
 
-    // --- แก้ไข: รับเงินแล้วลบออกจากหน้าจอทันที ---
     async function checkBin() {
-        if(confirm('ยืนยันรับเงินและปิดโต๊ะ?')) {
+        // 1. ถามยืนยันก่อน (ใช้ SweetAlert สวยกว่า confirm ธรรมดา)
+        const result = await Swal.fire({
+            title: 'ยืนยันรับเงิน?',
+            text: `ปิดโต๊ะ ${selectedOrder.table_no} ยอดสุทธิ ${selectedOrder.total_price.toLocaleString()} บาท`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#198754',
+            cancelButtonColor: '#d33',
+            confirmButtonText: '💰 รับเงิน / ปิดโต๊ะ',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (result.isConfirmed) {
             const orderId = selectedOrder.id;
             
-            // ปิด Modal ทันที
-            const modal = bootstrap.Modal.getInstance(document.getElementById('billModal'));
+            // 2. ปิด Modal ทันที
+            const modalEl = document.getElementById('billModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
             modal.hide();
 
-            Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
+            // 3. แสดง Loading ห้ามกดปิด
+            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-            // ส่งข้อมูลไป Backend
-            await apiRequest({ action: 'updateStatus', id: orderId, status: 'paid' }, 'POST');
+            try {
+                // 4. ส่งข้อมูลไป Backend (รอจนเสร็จ)
+                await apiRequest({ action: 'updateStatus', id: orderId, status: 'paid' }, 'POST');
 
-            // ลบออกจากหน้าจอทันที (ไม่ต้องรอ fetch)
-            currentOrders = currentOrders.filter(o => o.id !== orderId);
-            renderDashboard();
+                // 5. ลบออกจากตัวแปร currentOrders ทันที (ไม่ต้องรอ fetch ใหม่)
+                currentOrders = currentOrders.filter(o => o.id !== orderId);
+                
+                // 6. อัปเดตหน้าจอ Dashboard ทันที
+                renderDashboard();
 
-            Swal.close();
-            fetchOrders(); 
+                // 7. แจ้งเตือนสำเร็จ
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ปิดโต๊ะเรียบร้อย',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+                // *** สำคัญ: ลบ fetchOrders() ออกจากตรงนี้ ***
+                // เพื่อป้องกันการดึงข้อมูลเก่ากลับมา ก่อนที่ Google Sheet จะบันทึกเสร็จ
+                // ปล่อยให้ setInterval 5 วินาที ทำหน้าที่ดึงข้อมูลรอบถัดไปเอง
+
+            } catch (error) {
+                console.error(error);
+                Swal.fire('Error', 'เกิดข้อผิดพลาด เชื่อมต่อไม่ได้', 'error');
+            }
         }
     }
-
     // --- MENU MANAGEMENT ---
     async function fetchMenu() {
         const data = await apiRequest({ action: 'getMenu' });
@@ -518,3 +547,4 @@
 </script>
 </body>
 </html>
+
