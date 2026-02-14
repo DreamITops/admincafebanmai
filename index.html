@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restaurant Pro - Admin (8 Categories)</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Restaurant Pro - Banmai Admin</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -12,34 +11,31 @@
 
     <style>
         body { background: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        
-        /* Sidebar */
+        /* Sidebar Styles */
         .sidebar { width: 260px; height: 100vh; background: #2c3e50; color: white; position: fixed; padding: 20px; z-index: 100; transition: all 0.3s ease; overflow-x: hidden; }
         .main { margin-left: 260px; padding: 30px; transition: all 0.3s ease; }
         .nav-item { padding: 12px; margin-bottom: 5px; cursor: pointer; border-radius: 8px; color: #ccc; display: flex; align-items: center; gap: 15px; white-space: nowrap; overflow: hidden; }
         .nav-item:hover, .nav-item.active { background: #34495e; color: white; font-weight: bold; }
         .nav-item i { min-width: 20px; text-align: center; font-size: 1.1rem; }
-
-        /* Mobile / Mini Sidebar */
+        
+        /* Mobile Sidebar */
         body.sidebar-mini .sidebar { width: 80px; padding: 20px 10px; }
         body.sidebar-mini .main { margin-left: 80px; }
         body.sidebar-mini .nav-text, body.sidebar-mini .sidebar-header-text { display: none; }
         body.sidebar-mini .nav-item { justify-content: center; }
 
-        .img-preview-box { width: 120px; height: 120px; border: 2px dashed #ccc; border-radius: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; margin: 0 auto; background: #f9f9f9;}
+        /* UI Elements */
+        .img-preview-box { width: 150px; height: 150px; border: 2px dashed #ccc; border-radius: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; margin: 0 auto; background: #f9f9f9; cursor: pointer; position: relative;}
         .img-preview-box img { width: 100%; height: 100%; object-fit: cover; }
+        .img-preview-box:hover { border-color: #0d6efd; background: #f0f8ff; }
+        
         .bar-container { height: 20px; background: #e9ecef; border-radius: 10px; overflow: hidden; margin-top: 5px; }
         .bar-fill { height: 100%; background: #28a745; transition: width 0.5s; }
-
-        /* Style สำหรับตัวเลือกเมนูในหน้าบิล */
+        
         .menu-selector-btn { text-align: left; white-space: normal; height: auto; padding: 8px; border: 1px solid #dee2e6; background: white; transition: 0.2s; }
         .menu-selector-btn:hover { border-color: #0d6efd; background: #f8f9fa; transform: translateY(-2px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .cat-tab.active { background-color: #0d6efd; color: white; border-color: #0d6efd; }
 
-        @media(max-width: 992px) {
-            .sidebar { display: none; }
-            .main { margin-left: 0; padding: 15px; }
-        }
+        @media(max-width: 992px) { .sidebar { display: none; } .main { margin-left: 0; padding: 15px; } }
     </style>
 </head>
 <body>
@@ -69,8 +65,11 @@
             <div class="col-6"><div class="card p-3 border-start border-4 border-primary"><h3><i class="fas fa-chair"></i> <span id="activeTables">0</span></h3><small>โต๊ะเปิดอยู่</small></div></div>
             <div class="col-6"><div class="card p-3 border-start border-4 border-success"><h3><i class="fas fa-coins"></i> <span id="pendingSales">0</span></h3><small>ยอดรอเก็บ</small></div></div>
         </div>
-        <h5 class="fw-bold"><i class="fas fa-list"></i> รายการออเดอร์ (Live) <span class="spinner-grow spinner-grow-sm text-success" role="status"></span></h5>
-        <div class="row" id="orderGrid"><div class="col-12 text-center py-5">Waiting for orders...</div></div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold m-0"><i class="fas fa-list"></i> รายการออเดอร์ (อัปเดตทุก 5 วินาที)</h5>
+            <div class="spinner-grow spinner-grow-sm text-success" role="status" id="loadingSpinner"></div>
+        </div>
+        <div class="row" id="orderGrid"><div class="col-12 text-center py-5">Loading...</div></div>
     </div>
 
     <div id="view-menu" class="d-none">
@@ -109,12 +108,16 @@
             <div class="modal-body">
                 <form id="menuForm">
                     <input type="hidden" id="editMenuId">
+                    <input type="hidden" id="menuExistingUrl">
+                    
                     <div class="mb-3 text-center">
-                        <label class="img-preview-box" for="menuImageFile">
-                            <img id="previewImg" src="https://via.placeholder.com/150?text=Upload" alt="Preview">
+                        <label class="img-preview-box" for="menuImageFile" title="คลิกเพื่อเลือกรูปภาพ">
+                            <img id="previewImg" src="https://via.placeholder.com/150?text=Upload+Image" alt="Preview">
                             <input type="file" id="menuImageFile" accept="image/*" hidden onchange="previewImage(event)">
                         </label>
+                        <small class="text-muted d-block mt-2">คลิกที่กรอบเพื่อเปลี่ยนรูปภาพ (Auto save to Drive)</small>
                     </div>
+
                     <input type="text" id="menuName" class="form-control mb-2" placeholder="ชื่อเมนู" required>
                     <div class="row mb-3">
                         <div class="col-6"><input type="number" id="menuPrice" class="form-control" placeholder="ราคา" required></div>
@@ -139,7 +142,7 @@
                     <div id="toppingContainer" class="bg-light p-2 rounded" style="max-height: 200px; overflow-y: auto;"></div>
                 </form>
             </div>
-            <div class="modal-footer"><button type="button" class="btn btn-primary w-100" onclick="saveMenu()">บันทึก</button></div>
+            <div class="modal-footer"><button type="button" class="btn btn-primary w-100" onclick="saveMenu()">บันทึกข้อมูล</button></div>
         </div>
     </div>
 </div>
@@ -170,10 +173,8 @@
 
                     <div class="col-md-7 order-md-1 mb-3">
                         <h6 class="fw-bold text-muted mb-2">เพิ่มรายการใหม่</h6>
-                        <div class="d-flex gap-2 overflow-auto pb-2 mb-2" id="billMenuCategories">
-                            </div>
-                        <div class="row g-2" id="billMenuGrid" style="max-height: 450px; overflow-y: auto; align-content: flex-start;">
-                            </div>
+                        <div class="d-flex gap-2 overflow-auto pb-2 mb-2" id="billMenuCategories"></div>
+                        <div class="row g-2" id="billMenuGrid" style="max-height: 450px; overflow-y: auto; align-content: flex-start;"></div>
                     </div>
                 </div>
             </div>
@@ -182,34 +183,25 @@
 </div>
 
 <script>
-    // --- Config ---
-    const SUPABASE_URL = 'https://cgevinayobbjvbjdoofx.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnZXZpbmF5b2JianZiamRvb2Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzMzgxNTAsImV4cCI6MjA4NDkxNDE1MH0.buNGHEPFeYNNhb2mSpn_Q9KrjOYu-dnxDooZ4Ogv7DI';
-    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    // Sound
-    const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    // --- CONFIGURATION ---
+    // !!! ใส่ URL Web App ที่ได้จากการ Deploy Apps Script ตรงนี้ !!!
+    const SCRIPT_URL = 'https://script.google.com/macros/s/xxxxxxxxxxxxxxxxx/exec'; 
 
     let allMenus = [];
     let currentOrders = [];
     let selectedOrder = null;
     let currentBillCategory = 'ทั้งหมด';
+    let pollInterval;
 
-    // --- Init & Realtime ---
-    fetchOrders();
-    
-    db.channel('admin-realtime')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
-            if (payload.eventType === 'INSERT') {
-                playNotification();
-                const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
-                Toast.fire({ icon: 'success', title: '🔔 มีออเดอร์ใหม่เข้าครับ!' });
-            }
-            fetchOrders();
-        })
-        .subscribe();
+    // --- SYSTEM START ---
+    fetchOrders(); // เรียกครั้งแรก
+    startPolling(); // เริ่มระบบวนเช็คออเดอร์
 
-    function playNotification() { notificationSound.play().catch(error => console.log("Audio play blocked:", error)); }
+    function startPolling() {
+        if(pollInterval) clearInterval(pollInterval);
+        pollInterval = setInterval(fetchOrders, 5000); // เช็คทุก 5 วินาที
+    }
+
     function toggleSidebar() { document.body.classList.toggle('sidebar-mini'); }
 
     function switchTab(view, btn) {
@@ -224,11 +216,29 @@
         if(view === 'report') renderReport('daily');
     }
 
-    // --- Dashboard ---
+    // --- API HELPER ---
+    async function apiRequest(params, method = 'GET') {
+        try {
+            let options = { method: method };
+            let url = SCRIPT_URL;
+            if (method === 'GET') {
+                url += `?${new URLSearchParams(params).toString()}`;
+            } else {
+                options.body = JSON.stringify(params);
+            }
+            const res = await fetch(url, options);
+            return await res.json();
+        } catch (error) {
+            console.error("API Error", error);
+            return null;
+        }
+    }
+
+    // --- DASHBOARD & ORDERS ---
     async function fetchOrders() {
-        const { data, error } = await db.from('orders').select('*').neq('status', 'paid').order('created_at', {ascending:false}); 
-        if(error) { if(error.code!=='PGRST100') console.error(error); return; }
-        currentOrders = data || [];
+        const data = await apiRequest({ action: 'getOrders' });
+        if(!data) return;
+        currentOrders = data.filter(o => o.status !== 'paid').sort((a,b) => b.id - a.id);
         renderDashboard();
     }
 
@@ -237,11 +247,17 @@
         grid.innerHTML = '';
         document.getElementById('activeTables').innerText = currentOrders.length;
         document.getElementById('pendingSales').innerText = currentOrders.reduce((a,b)=>a+b.total_price,0).toLocaleString();
+        
         if(currentOrders.length === 0) { grid.innerHTML = '<div class="col-12 text-center text-muted py-5">ยังไม่มีออเดอร์ (ว่าง)</div>'; return; }
+        
         currentOrders.forEach(o => {
             let badge = o.status==='pending'?'bg-warning':(o.status==='cooking'?'bg-danger':'bg-success');
             let statusText = o.status==='pending'?'รอทำ':(o.status==='cooking'?'กำลังทำ':'เสิร์ฟแล้ว');
-            let btn = o.status==='pending'?`<button class="btn btn-outline-warning w-100 btn-sm mb-2" onclick="setStatus(${o.id},'cooking')">🔥 ปรุง</button>`:(o.status==='cooking'?`<button class="btn btn-success w-100 btn-sm mb-2" onclick="setStatus(${o.id},'served')">✅ เสิร์ฟ</button>`:'');
+            
+            let btn = '';
+            if(o.status==='pending') btn = `<button class="btn btn-outline-warning w-100 btn-sm mb-2" onclick="setStatus(${o.id},'cooking')">🔥 ปรุง</button>`;
+            else if(o.status==='cooking') btn = `<button class="btn btn-success w-100 btn-sm mb-2" onclick="setStatus(${o.id},'served')">✅ เสิร์ฟ</button>`;
+
             grid.innerHTML += `
                 <div class="col-md-6 col-lg-4 col-xl-3">
                     <div class="card p-3 mb-3 border-start border-4 border-${badge === 'bg-warning' ? 'warning' : (badge === 'bg-danger' ? 'danger' : 'success')}">
@@ -257,13 +273,19 @@
         });
     }
 
-    async function setStatus(id, st) { await db.from('orders').update({status:st}).eq('id', id); }
+    async function setStatus(id, st) { 
+        Swal.showLoading();
+        await apiRequest({ action: 'updateStatus', id: id, status: st }, 'POST');
+        Swal.close();
+        fetchOrders();
+    }
 
-    // --- Bill Management ---
+    // --- BILL MANAGEMENT ---
     async function openBill(id) {
-        const { data } = await db.from('orders').select('*').eq('id', id).single();
-        selectedOrder = data;
+        selectedOrder = currentOrders.find(o => o.id === id);
+        if(!selectedOrder) return;
         if(allMenus.length === 0) await fetchMenu();
+        
         document.getElementById('modalTableNo').innerText = selectedOrder.table_no;
         renderBillItems();
         renderBillCategories();
@@ -272,16 +294,11 @@
     }
 
     function renderBillCategories() {
-        // --- แก้ไขตรงนี้ครับ ให้เป็น Fixed List 8 หมวด ---
-        const definedCats = ['สเต็ก', 'เบอร์เกอร์', 'อาหารจานเดี่ยว', 'ของทานเล่น', 'ของหวาน', 'เครื่องดื่ม', 'กาแฟ', 'อื่นๆ'];
-        const cats = ['ทั้งหมด', ...definedCats]; 
-
+        const cats = ['ทั้งหมด', 'สเต็ก', 'เบอร์เกอร์', 'อาหารจานเดี่ยว', 'ของทานเล่น', 'ของหวาน', 'เครื่องดื่ม', 'กาแฟ', 'อื่นๆ'];
         const container = document.getElementById('billMenuCategories');
-        container.innerHTML = '';
-        cats.forEach(c => {
-            const activeClass = c === currentBillCategory ? 'btn-primary' : 'btn-outline-secondary';
-            container.innerHTML += `<button class="btn btn-sm ${activeClass} text-nowrap" onclick="changeBillCategory('${c}')">${c}</button>`;
-        });
+        container.innerHTML = cats.map(c => 
+            `<button class="btn btn-sm ${c===currentBillCategory?'btn-primary':'btn-outline-secondary'} text-nowrap" onclick="changeBillCategory('${c}')">${c}</button>`
+        ).join('');
     }
 
     function changeBillCategory(cat) {
@@ -294,14 +311,14 @@
         const grid = document.getElementById('billMenuGrid');
         grid.innerHTML = '';
         const items = cat === 'ทั้งหมด' ? allMenus : allMenus.filter(m => m.category === cat);
-        if(items.length === 0) { grid.innerHTML = '<div class="text-center w-100 text-muted mt-3">ไม่มีรายการในหมวดนี้</div>'; return; }
+        if(items.length === 0) { grid.innerHTML = '<div class="text-center w-100 text-muted mt-3">ไม่มีรายการ</div>'; return; }
+        
         items.forEach(m => {
             const imgHtml = m.image_url ? `<img src="${m.image_url}" style="width:40px;height:40px;border-radius:5px;object-fit:cover;" class="me-2">` : '';
             grid.innerHTML += `
                 <div class="col-6 col-lg-4">
                     <button class="btn w-100 menu-selector-btn d-flex align-items-center" onclick="addMenuToBill(${m.id})">
-                        ${imgHtml}
-                        <div style="overflow:hidden;"><div class="fw-bold text-truncate">${m.name}</div><small class="text-success">${m.price} ฿</small></div>
+                        ${imgHtml} <div style="overflow:hidden;"><div class="fw-bold text-truncate">${m.name}</div><small class="text-success">${m.price} ฿</small></div>
                     </button>
                 </div>`;
         });
@@ -315,15 +332,18 @@
             const qty = item.qty || 1;
             const itemTotal = item.price * qty;
             total += itemTotal;
-            tbody.innerHTML += `<tr><td><div class="fw-bold">${item.name}</div>${item.option ? `<small class="text-muted">${item.option}</small>` : ''}</td><td><div class="input-group input-group-sm" style="width: 90px;"><button class="btn btn-outline-secondary px-2" onclick="adjustItem(${index},-1)">-</button><span class="form-control text-center px-0 bg-white">${qty}</span><button class="btn btn-outline-secondary px-2" onclick="adjustItem(${index},1)">+</button></div></td><td class="text-end fw-bold">${itemTotal.toLocaleString()}</td></tr>`;
+            tbody.innerHTML += `<tr><td><div class="fw-bold">${item.name}</div>${item.option?`<small class="text-muted">${item.option}</small>`:''}</td><td><div class="input-group input-group-sm" style="width:90px;"><button class="btn btn-outline-secondary px-2" onclick="adjustItem(${index},-1)">-</button><span class="form-control text-center px-0 bg-white">${qty}</span><button class="btn btn-outline-secondary px-2" onclick="adjustItem(${index},1)">+</button></div></td><td class="text-end fw-bold">${itemTotal.toLocaleString()}</td></tr>`;
         });
         document.getElementById('modalTotal').innerText = total.toLocaleString() + " ฿";
     }
 
     async function adjustItem(idx, delta) {
         selectedOrder.items[idx].qty = (selectedOrder.items[idx].qty || 1) + delta;
-        if (selectedOrder.items[idx].qty <= 0) { if(!confirm('ต้องการลบรายการนี้ใช่ไหม?')) { selectedOrder.items[idx].qty=1; return; } selectedOrder.items.splice(idx,1); }
-        await saveOrderUpdate();
+        if (selectedOrder.items[idx].qty <= 0) { 
+            if(!confirm('ลบรายการนี้?')) { selectedOrder.items[idx].qty=1; return; } 
+            selectedOrder.items.splice(idx,1); 
+        }
+        saveOrderUpdate();
     }
 
     async function addMenuToBill(menuId) {
@@ -331,36 +351,48 @@
         if(!m) return;
         const exist = selectedOrder.items.find(i => i.id === m.id && !i.option);
         if(exist) { exist.qty = (exist.qty || 1) + 1; } else { selectedOrder.items.push({ id: m.id, name: m.name, price: m.price, qty: 1, option: '', note: '' }); }
-        await saveOrderUpdate();
-        const Toast = Swal.mixin({ toast: true, position: 'center', showConfirmButton: false, timer: 1000 });
+        
+        const Toast = Swal.mixin({ toast: true, position: 'center', showConfirmButton: false, timer: 800 });
         Toast.fire({ icon: 'success', title: 'เพิ่ม ' + m.name });
+        saveOrderUpdate();
     }
 
     async function saveOrderUpdate() {
-        const newTotal = selectedOrder.items.reduce((s,i)=>s+(i.price*(i.qty||1)),0);
-        await db.from('orders').update({ items: selectedOrder.items, total_price: newTotal }).eq('id', selectedOrder.id);
-        const { data } = await db.from('orders').select('*').eq('id', selectedOrder.id).single();
-        selectedOrder = data;
+        selectedOrder.total_price = selectedOrder.items.reduce((s,i)=>s+(i.price*(i.qty||1)),0);
         renderBillItems();
-        fetchOrders();
+        await apiRequest({ action: 'updateOrderItems', id: selectedOrder.id, items: selectedOrder.items, total_price: selectedOrder.total_price }, 'POST');
     }
 
     async function checkBin() {
-        if(confirm('ยืนยันรับเงินและปิดโต๊ะนี้?')) {
-            await db.from('orders').update({status:'paid'}).eq('id', selectedOrder.id);
+        if(confirm('ยืนยันรับเงินและปิดโต๊ะ?')) {
+            Swal.showLoading();
+            await apiRequest({ action: 'updateStatus', id: selectedOrder.id, status: 'paid' }, 'POST');
+            Swal.close();
             bootstrap.Modal.getInstance(document.getElementById('billModal')).hide();
+            fetchOrders();
         }
     }
 
-    // --- Menu & Report ---
+    // --- MENU MANAGEMENT ---
     async function fetchMenu() {
-        const { data } = await db.from('menu_items').select('*').order('id');
-        allMenus = data || [];
-        const tbody = document.getElementById('menuTableBody');
-        tbody.innerHTML = '';
-        allMenus.forEach(m => {
-            tbody.innerHTML += `<tr><td><img src="${m.image_url||'https://via.placeholder.com/50'}" width="50" style="border-radius:5px"></td><td>${m.name}</td><td>${m.price}</td><td><span class="badge bg-secondary">${m.category||'ทั่วไป'}</span></td><td>${m.is_available?'<span class="text-success">ขาย</span>':'<span class="text-danger">หมด</span>'}</td><td><button class="btn btn-sm btn-outline-primary" onclick="editMenu(${m.id})"><i class="fas fa-edit"></i></button> <button class="btn btn-sm btn-outline-danger" onclick="deleteMenu(${m.id})"><i class="fas fa-trash"></i></button></td></tr>`;
-        });
+        const data = await apiRequest({ action: 'getMenu' });
+        if(data) {
+            allMenus = data;
+            const tbody = document.getElementById('menuTableBody');
+            tbody.innerHTML = '';
+            allMenus.forEach(m => {
+                tbody.innerHTML += `<tr><td><img src="${m.image_url||'https://via.placeholder.com/50'}" width="50" height="50" style="object-fit:cover;border-radius:5px"></td><td>${m.name}</td><td>${m.price}</td><td><span class="badge bg-secondary">${m.category}</span></td><td>${m.is_available?'<span class="text-success">ขาย</span>':'<span class="text-danger">หมด</span>'}</td><td><button class="btn btn-sm btn-outline-primary" onclick="editMenu(${m.id})"><i class="fas fa-edit"></i></button> <button class="btn btn-sm btn-outline-danger" onclick="deleteMenu(${m.id})"><i class="fas fa-trash"></i></button></td></tr>`;
+            });
+        }
+    }
+
+    // Image Upload Helpers
+    function previewImage(e) { 
+        if(e.target.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(evt) { document.getElementById('previewImg').src = evt.target.result; };
+            reader.readAsDataURL(e.target.files[0]);
+        }
     }
 
     function addToppingInput(name='', price=0) {
@@ -370,58 +402,104 @@
         document.getElementById('toppingContainer').appendChild(div);
     }
 
-    function openMenuModal() { document.getElementById('menuForm').reset(); document.getElementById('editMenuId').value=""; document.getElementById('toppingContainer').innerHTML=''; addToppingInput(); new bootstrap.Modal(document.getElementById('menuModal')).show(); }
-    
+    function openMenuModal() { 
+        document.getElementById('menuForm').reset(); 
+        document.getElementById('editMenuId').value=""; 
+        document.getElementById('menuExistingUrl').value="";
+        document.getElementById('previewImg').src = 'https://via.placeholder.com/150?text=Upload+Image';
+        document.getElementById('toppingContainer').innerHTML=''; 
+        addToppingInput(); 
+        new bootstrap.Modal(document.getElementById('menuModal')).show(); 
+    }
+
     function editMenu(id) {
         const m = allMenus.find(x=>x.id===id);
-        document.getElementById('editMenuId').value=m.id; document.getElementById('menuName').value=m.name; document.getElementById('menuPrice').value=m.price; 
-        document.getElementById('menuCategory').value=m.category; // Auto select category
-        document.getElementById('previewImg').src=m.image_url||"";
+        document.getElementById('editMenuId').value=m.id; 
+        document.getElementById('menuName').value=m.name; 
+        document.getElementById('menuPrice').value=m.price; 
+        document.getElementById('menuCategory').value=m.category; 
+        document.getElementById('menuExistingUrl').value = m.image_url || "";
+        document.getElementById('previewImg').src = m.image_url || "https://via.placeholder.com/150?text=No+Image";
+        document.getElementById('menuImageFile').value = ""; // reset file input
+
         document.getElementById('toppingContainer').innerHTML='';
         if(m.options && m.options.length) m.options.forEach(o=>addToppingInput(o.name,o.price)); else addToppingInput();
         new bootstrap.Modal(document.getElementById('menuModal')).show();
     }
-
-    function previewImage(e) { if(e.target.files[0]) document.getElementById('previewImg').src = URL.createObjectURL(e.target.files[0]); }
 
     async function saveMenu() {
         const id = document.getElementById('editMenuId').value;
         const name = document.getElementById('menuName').value;
         const price = parseInt(document.getElementById('menuPrice').value);
         const category = document.getElementById('menuCategory').value;
-        const tops = []; document.querySelectorAll('.topping-row').forEach(r=>{ const n=r.querySelector('.topping-name').value.trim(); if(n) tops.push({name:n, price:parseInt(r.querySelector('.topping-price').value||0)}) });
-        let img = document.getElementById('previewImg').src;
-        const fileIn = document.getElementById('menuImageFile');
-        if(fileIn.files.length) {
-            const file = fileIn.files[0]; const fName=`menu_${Date.now()}`;
-            const {error} = await db.storage.from('menu_images').upload(fName, file);
-            if(!error) { const {data} = db.storage.from('menu_images').getPublicUrl(fName); img=data.publicUrl; }
+        const existingUrl = document.getElementById('menuExistingUrl').value;
+        
+        const tops = []; 
+        document.querySelectorAll('.topping-row').forEach(r=>{ 
+            const n=r.querySelector('.topping-name').value.trim(); 
+            if(n) tops.push({name:n, price:parseInt(r.querySelector('.topping-price').value||0)}) 
+        });
+
+        let payload = {
+            action: id ? 'editMenu' : 'addMenu',
+            id: id, name, price, category, options: tops,
+            image_url: existingUrl 
+        };
+
+        const fileInput = document.getElementById('menuImageFile');
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const base64 = await new Promise(resolve => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(file);
+            });
+            payload.image_data = base64;
+            payload.image_name = file.name;
         }
-        const payload = {name, price, category, options:tops, image_url:img};
-        if(id) await db.from('menu_items').update(payload).eq('id', id); else await db.from('menu_items').insert([payload]);
-        bootstrap.Modal.getInstance(document.getElementById('menuModal')).hide(); fetchMenu();
+
+        Swal.fire({ title: 'กำลังบันทึก...', text: 'กรุณารอสักครู่ (อาจช้าหากมีรูป)', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        await apiRequest(payload, 'POST');
+        Swal.close();
+        
+        bootstrap.Modal.getInstance(document.getElementById('menuModal')).hide(); 
+        fetchMenu();
     }
 
-    async function deleteMenu(id) { if(confirm('ลบ?')) { await db.from('menu_items').delete().eq('id', id); fetchMenu(); } }
+    async function deleteMenu(id) { 
+        if(confirm('ต้องการลบเมนูนี้?')) { 
+            Swal.showLoading();
+            await apiRequest({ action: 'deleteMenu', id: id }, 'POST');
+            Swal.close();
+            fetchMenu(); 
+        } 
+    }
 
+    // --- REPORT ---
     async function renderReport(mode) {
-        const tbody = document.getElementById('reportContent'); tbody.innerHTML='Loading...';
-        const { data } = await db.from('orders').select('*').eq('status','paid').order('created_at',{ascending:true});
+        document.getElementById('reportContent').innerHTML='Loading...';
+        const allData = await apiRequest({ action: 'getOrders' });
+        if(!allData) return;
+
+        const data = allData.filter(o => o.status === 'paid');
         let summary={}, totalS=0, totalO=0;
-        (data||[]).forEach(o=>{
-            const d = new Date(o.created_at);
+        
+        data.forEach(o=>{
+            const d = new Date(o.created_at || o.id);
             const k = mode==='daily'?d.toLocaleDateString('th-TH'):d.toLocaleDateString('th-TH',{month:'long',year:'numeric'});
             if(!summary[k]) summary[k]={sales:0,count:0};
             summary[k].sales+=o.total_price; summary[k].count++; totalS+=o.total_price; totalO++;
         });
+
         document.getElementById('reportTotalSales').innerText=totalS.toLocaleString()+' ฿';
         document.getElementById('reportTotalOrders').innerText=totalO;
+        
         let html = `<table class="table table-striped"><thead><tr><th>ช่วงเวลา</th><th class="text-end">ยอดขาย</th><th class="text-center">ออเดอร์</th><th>กราฟ</th></tr></thead><tbody>`;
         const max = Math.max(...Object.values(summary).map(s=>s.sales), 100);
         for(const [k,v] of Object.entries(summary)) {
             html += `<tr><td>${k}</td><td class="text-end fw-bold">${v.sales.toLocaleString()}</td><td class="text-center">${v.count}</td><td><div class="bar-container"><div class="bar-fill" style="width:${(v.sales/max)*100}%"></div></div></td></tr>`;
         }
-        tbody.innerHTML = html+'</tbody></table>';
+        document.getElementById('reportContent').innerHTML = html+'</tbody></table>';
     }
 </script>
 </body>
