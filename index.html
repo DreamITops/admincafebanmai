@@ -81,6 +81,28 @@
             <h3>จัดการเมนู</h3>
             <button class="btn btn-primary" onclick="openMenuModal()">+ เพิ่มเมนู</button>
         </div>
+        
+        <div class="row mb-3">
+            <div class="col-md-6 mb-2">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" id="searchMenuInput" class="form-control" placeholder="ค้นหาชื่อเมนู..." onkeyup="filterMenu()">
+                </div>
+            </div>
+            <div class="col-md-6 mb-2">
+                <select id="filterMenuCategory" class="form-select" onchange="filterMenu()">
+                    <option value="ทั้งหมด">-- แสดงทุกหมวดหมู่ --</option>
+                    <option value="สเต็ก">สเต็ก</option>
+                    <option value="เบอร์เกอร์">เบอร์เกอร์</option>
+                    <option value="อาหารจานเดี่ยว">อาหารจานเดี่ยว</option>
+                    <option value="ของทานเล่น">ของทานเล่น</option>
+                    <option value="ของหวาน">ของหวาน</option>
+                    <option value="เครื่องดื่ม">เครื่องดื่ม</option>
+                    <option value="กาแฟ">กาแฟ</option>
+                    <option value="อื่นๆ">อื่นๆ</option>
+                </select>
+            </div>
+        </div>
         <div class="card shadow-sm"><div class="card-body p-0 table-responsive">
             <table class="table table-hover mb-0 align-middle">
                 <thead class="table-light"><tr><th>รูป</th><th>ชื่อ</th><th>ราคา</th><th>หมวด</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
@@ -407,13 +429,39 @@
         }
     }
 
-    // --- Menu Logic ---
+    // --- Menu Logic (อัปเดตให้รองรับการค้นหา) ---
     async function fetchMenu() {
         const { data } = await db.from('menu_items').select('*').order('id');
         allMenus = data || [];
+        renderMenuTable(); // เรียกใช้ฟังก์ชันสำหรับเรนเดอร์แยกต่างหากเพื่อให้ filter ได้
+    }
+
+    // ฟังก์ชันใหม่สำหรับ Filter ข้อมูล
+    function filterMenu() {
+        renderMenuTable();
+    }
+
+    // ฟังก์ชันสำหรับเรนเดอร์ตารางเมนู
+    function renderMenuTable() {
         const tbody = document.getElementById('menuTableBody');
         tbody.innerHTML = '';
-        allMenus.forEach(m => {
+        
+        const searchQuery = document.getElementById('searchMenuInput').value.toLowerCase();
+        const categoryQuery = document.getElementById('filterMenuCategory').value;
+
+        // คัดกรองข้อมูลตามคำค้นหาและหมวดหมู่
+        const filteredMenus = allMenus.filter(m => {
+            const matchSearch = m.name.toLowerCase().includes(searchQuery);
+            const matchCategory = categoryQuery === 'ทั้งหมด' || m.category === categoryQuery;
+            return matchSearch && matchCategory;
+        });
+
+        if(filteredMenus.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">ไม่พบเมนูที่ค้นหา</td></tr>';
+            return;
+        }
+
+        filteredMenus.forEach(m => {
             tbody.innerHTML += `<tr>
                 <td><img src="${m.image_url||'https://via.placeholder.com/50'}" width="50" style="border-radius:5px"></td>
                 <td>${m.name}</td>
