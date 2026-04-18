@@ -103,9 +103,10 @@
                 </select>
             </div>
         </div>
+
         <div class="card shadow-sm"><div class="card-body p-0 table-responsive">
             <table class="table table-hover mb-0 align-middle">
-                <thead class="table-light"><tr><th>รูป</th><th>ชื่อ</th><th>ราคา</th><th>หมวด</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+                <thead class="table-light"><tr><th>รูป</th><th>ชื่อ</th><th>ราคา</th><th>หมวด</th><th>สถานะ</th><th width="150">จัดการ</th></tr></thead>
                 <tbody id="menuTableBody"><tr><td colspan="6" class="text-center py-4">Loading...</td></tr></tbody>
             </table>
         </div></div>
@@ -143,8 +144,8 @@
                     </div>
                     <input type="text" id="menuName" class="form-control mb-2" placeholder="ชื่อเมนู" required>
                     <div class="row mb-3">
-                        <div class="col-6"><input type="number" id="menuPrice" class="form-control" placeholder="ราคา" required></div>
-                        <div class="col-6">
+                        <div class="col-4"><input type="number" id="menuPrice" class="form-control" placeholder="ราคา" required></div>
+                        <div class="col-4">
                             <select id="menuCategory" class="form-select">
                                 <option value="สเต็ก">สเต็ก</option>
                                 <option value="เบอร์เกอร์">เบอร์เกอร์</option>
@@ -154,6 +155,12 @@
                                 <option value="เครื่องดื่ม">เครื่องดื่ม</option>
                                 <option value="กาแฟ">กาแฟ</option>
                                 <option value="อื่นๆ">อื่นๆ</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <select id="menuStatus" class="form-select">
+                                <option value="true">🟢 ขาย</option>
+                                <option value="false">🔴 หมด</option>
                             </select>
                         </div>
                     </div>
@@ -226,39 +233,23 @@
         fetchOrders();
         setupRealtime();
 
-        // --- เพิ่มการตรวจจับออเดอร์ใหม่ทุก 5 วินาที (Polling Detection) ---
-        // นี่คือระบบสำรอง (Backup) กรณี Realtime หลุด หรือ Internet กระตุก
         setInterval(async () => {
-            // เช็คจำนวนออเดอร์ที่ยังไม่จ่ายเงิน (count: 'exact', head: true คือเอาแค่จำนวน ไม่เอาข้อมูล เพื่อความเร็ว)
             const { count, error } = await db
                 .from('orders')
                 .select('*', { count: 'exact', head: true })
                 .neq('status', 'paid');
 
             if (!error && count !== null) {
-                // กรณีมีออเดอร์เพิ่มขึ้นมากกว่าที่แสดงอยู่
                 if (count > lastOrderCount) {
-                    console.log("New order detected via Polling!");
                     playNotification();
-                    Swal.mixin({ 
-                        toast: true, 
-                        position: 'top-end', 
-                        showConfirmButton: false, 
-                        timer: 4000 
-                    }).fire({ 
-                        icon: 'success', 
-                        title: `🔔 พบออเดอร์ใหม่! (รวม ${count} โต๊ะ)` 
-                    });
-                    fetchOrders(); // รีโหลดข้อมูลใหม่ทันที
-                } 
-                // กรณีจำนวนลดลง (เช่น มีการเช็คบิลไปแล้ว) หรือไม่เท่ากัน ให้ Sync เงียบๆ
-                else if (count < lastOrderCount) {
+                    Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 4000 }).fire({ icon: 'success', title: `🔔 พบออเดอร์ใหม่! (รวม ${count} โต๊ะ)` });
+                    fetchOrders();
+                } else if (count < lastOrderCount) {
                     fetchOrders();
                 }
-                // อัปเดตตัวแปรนับจำนวน
                 lastOrderCount = count;
             }
-        }, 5000); // ทำงานทุก 5 วินาที
+        }, 5000);
     });
 
     function setupRealtime() {
@@ -294,7 +285,7 @@
         if(error) { console.error(error); return; }
         
         currentOrders = data || [];
-        lastOrderCount = currentOrders.length; // อัปเดตจำนวนออเดอร์ปัจจุบันเสมอ เพื่อให้ระบบตรวจจับทำงานแม่นยำ
+        lastOrderCount = currentOrders.length;
         renderDashboard();
     }
 
@@ -361,12 +352,16 @@
         const items = cat === 'ทั้งหมด' ? allMenus : allMenus.filter(m => m.category === cat);
         if(items.length === 0) { grid.innerHTML = '<div class="text-center w-100 text-muted mt-3">ไม่มีรายการในหมวดนี้</div>'; return; }
         items.forEach(m => {
+            // เช็คสถานะเพื่อจัดการสี (ถ้าหมด ให้ปุ่มจางลงและกดไม่ได้)
+            const disableAttr = m.is_available === false ? 'disabled style="opacity: 0.5;"' : '';
+            const statusLabel = m.is_available === false ? '<span class="badge bg-danger ms-2">หมด</span>' : '';
             const imgHtml = m.image_url ? `<img src="${m.image_url}" style="width:40px;height:40px;border-radius:5px;object-fit:cover;" class="me-2">` : '';
+            
             grid.innerHTML += `
                 <div class="col-6 col-lg-4">
-                    <button class="btn w-100 menu-selector-btn d-flex align-items-center" onclick="addMenuToBill(${m.id})">
+                    <button class="btn w-100 menu-selector-btn d-flex align-items-center" onclick="addMenuToBill(${m.id})" ${disableAttr}>
                         ${imgHtml}
-                        <div style="overflow:hidden;"><div class="fw-bold text-truncate">${m.name}</div><small class="text-success">${m.price} ฿</small></div>
+                        <div style="overflow:hidden;"><div class="fw-bold text-truncate">${m.name} ${statusLabel}</div><small class="text-success">${m.price} ฿</small></div>
                     </button>
                 </div>`;
         });
@@ -425,23 +420,21 @@
         if(confirm('ยืนยันรับเงินและปิดโต๊ะนี้?')) {
             await db.from('orders').update({status:'paid'}).eq('id', selectedOrder.id);
             bootstrap.Modal.getInstance(document.getElementById('billModal')).hide();
-            fetchOrders(); // เรียก fetchOrders เพื่ออัปเดตหน้าจอหลังเช็คบิล
+            fetchOrders(); 
         }
     }
 
-    // --- Menu Logic (อัปเดตให้รองรับการค้นหา) ---
+    // --- Menu Logic ---
     async function fetchMenu() {
         const { data } = await db.from('menu_items').select('*').order('id');
         allMenus = data || [];
-        renderMenuTable(); // เรียกใช้ฟังก์ชันสำหรับเรนเดอร์แยกต่างหากเพื่อให้ filter ได้
+        renderMenuTable();
     }
 
-    // ฟังก์ชันใหม่สำหรับ Filter ข้อมูล
     function filterMenu() {
         renderMenuTable();
     }
 
-    // ฟังก์ชันสำหรับเรนเดอร์ตารางเมนู
     function renderMenuTable() {
         const tbody = document.getElementById('menuTableBody');
         tbody.innerHTML = '';
@@ -449,7 +442,6 @@
         const searchQuery = document.getElementById('searchMenuInput').value.toLowerCase();
         const categoryQuery = document.getElementById('filterMenuCategory').value;
 
-        // คัดกรองข้อมูลตามคำค้นหาและหมวดหมู่
         const filteredMenus = allMenus.filter(m => {
             const matchSearch = m.name.toLowerCase().includes(searchQuery);
             const matchCategory = categoryQuery === 'ทั้งหมด' || m.category === categoryQuery;
@@ -462,18 +454,36 @@
         }
 
         filteredMenus.forEach(m => {
+            // ส่วนที่เพิ่มใหม่: ปุ่มสลับสถานะ (Quick Toggle)
+            const isAvail = m.is_available !== false; // ถ้า undefined ให้ถือเป็น true
+            const statusBadge = isAvail ? '<span class="badge bg-success">ขาย</span>' : '<span class="badge bg-danger">หมด</span>';
+            const toggleBtn = isAvail 
+                ? `<button class="btn btn-sm btn-outline-warning" onclick="toggleMenuStatus(${m.id}, false)" title="เปลี่ยนเป็น 'หมด'"><i class="fas fa-ban"></i></button>`
+                : `<button class="btn btn-sm btn-outline-success" onclick="toggleMenuStatus(${m.id}, true)" title="เปลี่ยนเป็น 'ขาย'"><i class="fas fa-check"></i></button>`;
+
             tbody.innerHTML += `<tr>
-                <td><img src="${m.image_url||'https://via.placeholder.com/50'}" width="50" style="border-radius:5px"></td>
-                <td>${m.name}</td>
+                <td><img src="${m.image_url||'https://via.placeholder.com/50'}" width="50" style="border-radius:5px; object-fit:cover; height:50px;"></td>
+                <td class="${!isAvail ? 'text-decoration-line-through text-muted' : ''}">${m.name}</td>
                 <td>${m.price}</td>
                 <td><span class="badge bg-secondary">${m.category||'ทั่วไป'}</span></td>
-                <td>${m.is_available?'<span class="text-success">ขาย</span>':'<span class="text-danger">หมด</span>'}</td>
+                <td>${statusBadge}</td>
                 <td>
-                    <button class="btn btn-sm btn-outline-primary" onclick="editMenu(${m.id})"><i class="fas fa-edit"></i></button> 
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteMenu(${m.id})"><i class="fas fa-trash"></i></button>
+                    <div class="btn-group">
+                        ${toggleBtn}
+                        <button class="btn btn-sm btn-outline-primary" onclick="editMenu(${m.id})" title="แก้ไข"><i class="fas fa-edit"></i></button> 
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteMenu(${m.id})" title="ลบ"><i class="fas fa-trash"></i></button>
+                    </div>
                 </td>
             </tr>`;
         });
+    }
+
+    // ฟังก์ชันใหม่: สำหรับกดเปลี่ยนสถานะด่วนที่หน้าตาราง
+    async function toggleMenuStatus(id, isAvailable) {
+        await db.from('menu_items').update({ is_available: isAvailable }).eq('id', id);
+        // แสดง Toast แจ้งเตือนสั้นๆ
+        Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 }).fire({ icon: 'success', title: isAvailable ? 'เปิดขายเมนูนี้แล้ว' : 'ตั้งค่าเมนูเป็น "หมด" แล้ว' });
+        fetchMenu();
     }
 
     function addToppingInput(name='', price=0) {
@@ -487,6 +497,7 @@
         document.getElementById('menuForm').reset(); 
         document.getElementById('editMenuId').value=""; 
         document.getElementById('previewImg').src = 'https://via.placeholder.com/150?text=Upload';
+        document.getElementById('menuStatus').value = "true"; // ตั้งค่าเริ่มต้นเป็น ขาย
         document.getElementById('toppingContainer').innerHTML=''; 
         addToppingInput(); 
         new bootstrap.Modal(document.getElementById('menuModal')).show(); 
@@ -498,6 +509,7 @@
         document.getElementById('menuName').value=m.name; 
         document.getElementById('menuPrice').value=m.price; 
         document.getElementById('menuCategory').value=m.category;
+        document.getElementById('menuStatus').value = m.is_available === false ? "false" : "true"; // โหลดสถานะเดิม
         document.getElementById('previewImg').src=m.image_url||"https://via.placeholder.com/150?text=Upload";
         document.getElementById('toppingContainer').innerHTML='';
         if(m.options && m.options.length) m.options.forEach(o=>addToppingInput(o.name,o.price)); else addToppingInput();
@@ -511,6 +523,8 @@
         const name = document.getElementById('menuName').value;
         const price = parseInt(document.getElementById('menuPrice').value);
         const category = document.getElementById('menuCategory').value;
+        const is_available = document.getElementById('menuStatus').value === "true"; // แปลงค่าเป็น Boolean
+        
         const tops = []; 
         document.querySelectorAll('.topping-row').forEach(r=>{ const n=r.querySelector('.topping-name').value.trim(); if(n) tops.push({name:n, price:parseInt(r.querySelector('.topping-price').value||0)}) });
         
@@ -525,7 +539,9 @@
             if(!error) { const {data} = db.storage.from('menu_images').getPublicUrl(fName); img=data.publicUrl; }
         }
         
-        const payload = {name, price, category, options:tops, image_url:img};
+        // เพิ่มตัวแปร is_available ส่งเข้าฐานข้อมูล
+        const payload = {name, price, category, options:tops, image_url:img, is_available};
+        
         if(id) await db.from('menu_items').update(payload).eq('id', id); else await db.from('menu_items').insert([payload]);
         bootstrap.Modal.getInstance(document.getElementById('menuModal')).hide(); 
         fetchMenu();
