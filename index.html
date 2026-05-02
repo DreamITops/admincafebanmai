@@ -35,7 +35,7 @@
         .bar-container { height: 20px; background: #e9ecef; border-radius: 10px; overflow: hidden; margin-top: 5px; }
         .bar-fill { height: 100%; background: #28a745; transition: width 0.5s; }
 
-        /* Bill Menu Selector */
+        /* Bill & POS Menu Selector */
         .menu-selector-btn { text-align: left; white-space: normal; height: auto; padding: 8px; border: 1px solid #dee2e6; background: white; transition: 0.2s; }
         .menu-selector-btn:hover { border-color: #0d6efd; background: #f8f9fa; transform: translateY(-2px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         
@@ -67,6 +67,8 @@
         <button class="btn btn-sm btn-outline-secondary text-white border-0" onclick="toggleSidebar()"><i class="fas fa-bars fa-lg"></i></button>
     </div>
     <div class="nav-item active" onclick="switchTab('dashboard', this)"><i class="fas fa-home"></i> <span class="nav-text">ออเดอร์ & ภาพรวม</span></div>
+    <!-- เมนูใหม่ รับออเดอร์ POS -->
+    <div class="nav-item text-info" onclick="switchTab('pos', this)"><i class="fas fa-desktop"></i> <span class="nav-text">รับออเดอร์ (POS)</span></div>
     <div class="nav-item" onclick="switchTab('menu', this)"><i class="fas fa-book"></i> <span class="nav-text">จัดการเมนูอาหาร</span></div>
     <div class="nav-item" onclick="switchTab('report', this)"><i class="fas fa-chart-line"></i> <span class="nav-text">รายงานรายได้</span></div>
     <div class="nav-item mt-5 text-danger" onclick="location.reload()"><i class="fas fa-sync"></i> <span class="nav-text">รีเฟรชระบบ</span></div>
@@ -77,10 +79,12 @@
         <h4 class="fw-bold m-0">Admin Pro</h4>
         <div>
             <button class="btn btn-outline-dark btn-sm me-1" onclick="switchTab('dashboard')"><i class="fas fa-home"></i></button>
+            <button class="btn btn-outline-info btn-sm me-1" onclick="switchTab('pos')"><i class="fas fa-desktop"></i></button>
             <button class="btn btn-outline-dark btn-sm" onclick="switchTab('menu')"><i class="fas fa-book"></i></button>
         </div>
     </div>
 
+    <!-- View: Dashboard -->
     <div id="view-dashboard">
         <div class="row mb-4">
             <div class="col-6"><div class="card p-3 border-start border-4 border-primary"><h3><i class="fas fa-chair"></i> <span id="activeTables">0</span></h3><small>โต๊ะเปิดอยู่</small></div></div>
@@ -90,7 +94,57 @@
         <div class="row" id="orderGrid"><div class="col-12 text-center py-5">Waiting for orders...</div></div>
     </div>
 
-    <!-- ... (ส่วนของ view-menu และ view-report คงเดิม ไม่ได้ตัดออกเพื่อให้สมบูรณ์) ... -->
+    <!-- View: POS (รับออเดอร์หน้าร้าน) -->
+    <div id="view-pos" class="d-none">
+        <h3 class="mb-4 text-info fw-bold"><i class="fas fa-desktop"></i> รับออเดอร์ (เปิดโต๊ะใหม่)</h3>
+        <div class="row">
+            <!-- ส่วนเลือกเมนู (ซ้าย) -->
+            <div class="col-md-7 col-lg-8 mb-3">
+                <div class="input-group mb-3">
+                    <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" id="posSearchMenu" class="form-control" placeholder="ค้นหาเมนูอาหาร..." onkeyup="filterPOSMenu()">
+                </div>
+                <div class="d-flex gap-2 overflow-auto pb-2 mb-2" id="posMenuCategories"></div>
+                <div class="row g-2" id="posMenuGrid" style="max-height: 65vh; overflow-y: auto; align-content: flex-start;"></div>
+            </div>
+
+            <!-- ส่วนตะกร้าและคิดเงิน (ขวา) -->
+            <div class="col-md-5 col-lg-4">
+                <div class="card shadow-sm border-0 bg-white">
+                    <div class="card-header bg-info text-white fw-bold d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-shopping-cart"></i> ออเดอร์ใหม่</span>
+                        <button class="btn btn-sm btn-outline-light" onclick="clearPOSCart()">ล้าง</button>
+                    </div>
+                    <div class="card-body p-2">
+                        <div class="input-group mb-3">
+                            <span class="input-group-text fw-bold bg-light">โต๊ะ</span>
+                            <input type="text" id="posTableNo" class="form-control fw-bold text-primary" placeholder="เลขโต๊ะ / สั่งกลับบ้าน">
+                        </div>
+                        
+                        <div class="table-responsive border rounded mb-3" style="max-height: 40vh; overflow-y: auto;">
+                            <table class="table table-sm mb-0">
+                                <thead class="table-light sticky-top"><tr><th>รายการ</th><th width="85">จน.</th><th class="text-end">รวม</th></tr></thead>
+                                <tbody id="posCartBody">
+                                    <tr><td colspan="3" class="text-center text-muted py-4">ยังไม่มีรายการ</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded mb-3">
+                            <h5 class="m-0 text-muted">ยอดสุทธิ</h5>
+                            <h2 class="m-0 text-primary fw-bold" id="posTotalAmount">0 ฿</h2>
+                        </div>
+
+                        <button class="btn btn-success w-100 py-3 fw-bold fs-5 shadow-sm" onclick="submitPOSOrder()">
+                            <i class="fas fa-concierge-bell"></i> ส่งออเดอร์เข้าครัว
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View: Menu -->
     <div id="view-menu" class="d-none">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3>จัดการเมนู</h3>
@@ -127,6 +181,7 @@
         </div></div>
     </div>
 
+    <!-- View: Report -->
     <div id="view-report" class="d-none">
         <h3 class="mb-4">📊 รายงานรายได้</h3>
         <ul class="nav nav-tabs mb-3">
@@ -143,7 +198,7 @@
     </div>
 </div>
 
-<!-- Modal เพิ่ม/แก้ไขเมนู (คงเดิม) -->
+<!-- Modal เพิ่ม/แก้ไขเมนู -->
 <div class="modal fade" id="menuModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -193,7 +248,7 @@
     </div>
 </div>
 
-<!-- Modal จัดการโต๊ะ (บิลออเดอร์) -->
+<!-- Modal จัดการโต๊ะ (บิลออเดอร์เก่า) -->
 <div class="modal fade" id="billModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
@@ -215,14 +270,12 @@
                             <h5 class="text-muted m-0">ยอดสุทธิ</h5>
                             <h3 class="text-primary fw-bold m-0" id="modalTotal">0 ฿</h3>
                         </div>
-                        <!-- เปลี่ยนจากจ่ายเงินตรงๆ เป็นเปิดหน้าใบเสร็จ -->
                         <button class="btn btn-success fw-bold w-100 mt-3 py-3 shadow-sm" onclick="openReceiptPreview()"><i class="fas fa-calculator"></i> คิดเงิน / ออกใบเสร็จ</button>
                     </div>
 
                     <div class="col-md-7 order-md-1 mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="fw-bold text-muted mb-0">เพิ่มรายการใหม่</h6>
-                            <!-- เพิ่มช่องค้นหาเมนูในหน้าบิล -->
+                            <h6 class="fw-bold text-muted mb-0">เพิ่มรายการใหม่ลงโต๊ะเดิม</h6>
                             <div class="input-group input-group-sm w-50">
                                 <span class="input-group-text"><i class="fas fa-search"></i></span>
                                 <input type="text" id="billSearchMenu" class="form-control" placeholder="ค้นหาเมนู..." onkeyup="filterBillMenuGrid()">
@@ -238,7 +291,7 @@
     </div>
 </div>
 
-<!-- Modal สำหรับเลือก Topping และใส่หมายเหตุ (Interactive Order) -->
+<!-- Modal สำหรับเลือก Topping และใส่หมายเหตุ (ใช้ร่วมกันได้ทั้ง POS และเพิ่มบิลเก่า) -->
 <div class="modal fade" id="itemConfigModal" tabindex="-1" style="z-index: 1060;">
     <div class="modal-dialog modal-sm modal-dialog-centered">
         <div class="modal-content">
@@ -267,7 +320,7 @@
                 </div>
             </div>
             <div class="modal-footer p-2">
-                <button type="button" class="btn btn-primary w-100 fw-bold" onclick="confirmItemConfig()">ตกลง (Add to Bill)</button>
+                <button type="button" class="btn btn-primary w-100 fw-bold" onclick="confirmItemConfig()">ตกลง (Add)</button>
             </div>
         </div>
     </div>
@@ -283,7 +336,6 @@
             </div>
             <div class="modal-body">
                 <div class="row">
-                    <!-- ส่วนแก้ไขข้อมูลใบเสร็จและชำระเงิน -->
                     <div class="col-md-6 mb-3 border-end">
                         <h6 class="fw-bold mb-3">ตั้งค่าใบเสร็จ & การรับเงิน</h6>
                         <div class="mb-2">
@@ -315,9 +367,8 @@
                         </div>
                     </div>
 
-                    <!-- ส่วน Preview ใบเสร็จ -->
                     <div class="col-md-6 bg-light p-3 rounded d-flex justify-content-center align-items-start">
-                        <!-- พื้นที่นี้จะถูก Print -->
+                        <!-- Print Area -->
                         <div id="receiptPrintArea" class="receipt-paper">
                             <div class="text-center mb-2">
                                 <h5 class="fw-bold m-0" id="printStoreName">บ้านไม้คาเฟ่ (Baanmai Cafe)</h5>
@@ -369,11 +420,17 @@
     let currentBillCategory = 'ทั้งหมด';
     let lastOrderCount = 0;
     
-    // Config Item State
+    // Config Item State (ใช้ร่วมกันทั้ง POS และ Bill)
     let tempConfigItem = null;
     let tempConfigBasePrice = 0;
+    let currentInteractionMode = 'bill'; // 'bill' = สั่งโต๊ะเก่า, 'pos' = สั่งโต๊ะใหม่
 
-    document.addEventListener('DOMContentLoaded', () => {
+    // POS State
+    let posCart = [];
+    let currentPOSCategory = 'ทั้งหมด';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await fetchMenu(); // โหลดเมนูมาเตรียมไว้ก่อน
         fetchOrders();
         setupRealtime();
     });
@@ -402,6 +459,11 @@
         if(view === 'menu') fetchMenu();
         if(view === 'dashboard') fetchOrders();
         if(view === 'report') renderReport('daily');
+        if(view === 'pos') {
+            renderPOSCategories();
+            renderPOSMenuGrid('ทั้งหมด');
+            renderPOSCart();
+        }
     }
 
     // --- Dashboard Logic ---
@@ -445,13 +507,125 @@
 
     async function setStatus(id, st) { await db.from('orders').update({status:st}).eq('id', id); fetchOrders(); }
 
-    // --- Bill Logic & Interactive Menu ---
+    // ====== POS Logic (รับออเดอร์ใหม่หน้าร้าน) ======
+    function renderPOSCategories() {
+        const definedCats = ['สเต็ก', 'เบอร์เกอร์', 'อาหารจานเดี่ยว', 'ของทานเล่น', 'ของหวาน', 'เครื่องดื่ม', 'กาแฟ', 'อื่นๆ'];
+        const cats = ['ทั้งหมด', ...definedCats]; 
+        const container = document.getElementById('posMenuCategories');
+        container.innerHTML = '';
+        cats.forEach(c => {
+            const activeClass = c === currentPOSCategory ? 'btn-info text-white' : 'btn-outline-secondary';
+            container.innerHTML += `<button class="btn btn-sm ${activeClass} text-nowrap" onclick="changePOSCategory('${c}')">${c}</button>`;
+        });
+    }
+
+    function changePOSCategory(cat) { 
+        currentPOSCategory = cat; 
+        document.getElementById('posSearchMenu').value = ''; 
+        renderPOSCategories(); 
+        renderPOSMenuGrid(cat); 
+    }
+
+    function filterPOSMenu() {
+        renderPOSMenuGrid(currentPOSCategory);
+    }
+
+    function renderPOSMenuGrid(cat) {
+        const grid = document.getElementById('posMenuGrid');
+        grid.innerHTML = '';
+        const searchKeyword = document.getElementById('posSearchMenu').value.toLowerCase();
+        
+        let items = cat === 'ทั้งหมด' ? allMenus : allMenus.filter(m => m.category === cat);
+        if(searchKeyword) items = items.filter(m => m.name.toLowerCase().includes(searchKeyword));
+
+        if(items.length === 0) { grid.innerHTML = '<div class="text-center w-100 text-muted mt-3">ไม่มีรายการที่ค้นหา</div>'; return; }
+        
+        items.forEach(m => {
+            const disableAttr = m.is_available === false ? 'disabled style="opacity: 0.5;"' : '';
+            const statusLabel = m.is_available === false ? '<span class="badge bg-danger ms-2" style="font-size:0.6rem;">หมด</span>' : '';
+            const imgHtml = m.image_url ? `<img src="${m.image_url}" style="width:40px;height:40px;border-radius:5px;object-fit:cover;" class="me-2">` : '';
+            
+            grid.innerHTML += `
+                <div class="col-6 col-md-4 col-xl-3">
+                    <button class="btn w-100 menu-selector-btn d-flex flex-column align-items-center text-center p-2" onclick="handleMenuSelection(${m.id}, 'pos')" ${disableAttr}>
+                        ${m.image_url ? `<img src="${m.image_url}" style="width:100%;height:80px;border-radius:5px;object-fit:cover;margin-bottom:5px;">` : `<div style="width:100%;height:80px;background:#eee;border-radius:5px;margin-bottom:5px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-image text-muted"></i></div>`}
+                        <div class="w-100" style="overflow:hidden;"><div class="fw-bold text-truncate" style="font-size:0.85rem;">${m.name} ${statusLabel}</div><div class="text-success fw-bold">${m.price} ฿</div></div>
+                    </button>
+                </div>`;
+        });
+    }
+
+    function renderPOSCart() {
+        const tbody = document.getElementById('posCartBody');
+        tbody.innerHTML = '';
+        let total = 0;
+        
+        if (posCart.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">ยังไม่มีรายการ</td></tr>';
+            document.getElementById('posTotalAmount').innerText = "0 ฿";
+            return;
+        }
+
+        posCart.forEach((item, index) => {
+            const qty = item.qty || 1;
+            const itemTotal = item.price * qty;
+            total += itemTotal;
+            tbody.innerHTML += `<tr>
+                <td><div class="fw-bold" style="font-size:0.9rem;">${item.name}</div>${item.option ? `<small class="text-muted" style="font-size:0.75rem;">${item.option}</small>` : ''}</td>
+                <td><div class="input-group input-group-sm" style="width: 85px;">
+                    <button class="btn btn-outline-secondary px-2" onclick="adjustPOSItem(${index},-1)">-</button>
+                    <span class="form-control text-center px-0 bg-white" style="font-size:0.85rem;">${qty}</span>
+                    <button class="btn btn-outline-secondary px-2" onclick="adjustPOSItem(${index},1)">+</button>
+                </div></td>
+                <td class="text-end fw-bold text-primary align-middle">${itemTotal.toLocaleString()}</td>
+            </tr>`;
+        });
+        document.getElementById('posTotalAmount').innerText = total.toLocaleString() + " ฿";
+    }
+
+    function adjustPOSItem(idx, delta) {
+        posCart[idx].qty = (posCart[idx].qty || 1) + delta;
+        if (posCart[idx].qty <= 0) posCart.splice(idx,1); 
+        renderPOSCart();
+    }
+
+    function clearPOSCart() {
+        posCart = [];
+        document.getElementById('posTableNo').value = '';
+        renderPOSCart();
+    }
+
+    async function submitPOSOrder() {
+        if (posCart.length === 0) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกเมนูอาหารก่อน', 'warning'); return; }
+        const tableNo = document.getElementById('posTableNo').value.trim() || 'ลูกค้าหน้าร้าน';
+        const total = posCart.reduce((s,i)=>s+(i.price*(i.qty||1)),0);
+
+        const newOrder = {
+            table_no: tableNo,
+            items: posCart,
+            total_price: total,
+            status: 'pending' // ส่งเข้าครัวรอทำ
+        };
+
+        Swal.fire({ title: 'กำลังส่งออเดอร์...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+        const { error } = await db.from('orders').insert([newOrder]);
+        if (error) { Swal.fire('เกิดข้อผิดพลาด', error.message, 'error'); return; }
+
+        Swal.fire({ icon: 'success', title: 'เปิดโต๊ะและส่งออเดอร์แล้ว!', timer: 1500, showConfirmButton: false });
+        clearPOSCart();
+        fetchOrders();
+        // พาเด้งกลับไปหน้า Dashboard อัตโนมัติเพื่อดูออเดอร์ที่เพิ่งสร้าง
+        switchTab('dashboard', document.querySelector('.nav-item.active')); 
+    }
+
+
+    // ====== Bill Logic (เพิ่มของเข้าโต๊ะเดิม) ======
     async function openBill(id) {
         const { data } = await db.from('orders').select('*').eq('id', id).single();
         selectedOrder = data;
-        if(allMenus.length === 0) await fetchMenu();
         document.getElementById('modalTableNo').innerText = selectedOrder.table_no;
-        document.getElementById('billSearchMenu').value = ''; // รีเซ็ตช่องค้นหา
+        document.getElementById('billSearchMenu').value = ''; 
         renderBillItems();
         renderBillCategories();
         renderBillMenuGrid('ทั้งหมด');
@@ -471,14 +645,12 @@
 
     function changeBillCategory(cat) { 
         currentBillCategory = cat; 
-        document.getElementById('billSearchMenu').value = ''; // เคลียร์ช่องค้นหาเมื่อเปลี่ยนหมวด
+        document.getElementById('billSearchMenu').value = ''; 
         renderBillCategories(); 
         renderBillMenuGrid(cat); 
     }
 
-    function filterBillMenuGrid() {
-        renderBillMenuGrid(currentBillCategory);
-    }
+    function filterBillMenuGrid() { renderBillMenuGrid(currentBillCategory); }
 
     function renderBillMenuGrid(cat) {
         const grid = document.getElementById('billMenuGrid');
@@ -486,11 +658,7 @@
         const searchKeyword = document.getElementById('billSearchMenu').value.toLowerCase();
         
         let items = cat === 'ทั้งหมด' ? allMenus : allMenus.filter(m => m.category === cat);
-        
-        // กรองตามคำค้นหา
-        if(searchKeyword) {
-            items = items.filter(m => m.name.toLowerCase().includes(searchKeyword));
-        }
+        if(searchKeyword) items = items.filter(m => m.name.toLowerCase().includes(searchKeyword));
 
         if(items.length === 0) { grid.innerHTML = '<div class="text-center w-100 text-muted mt-3">ไม่มีรายการที่ค้นหา</div>'; return; }
         
@@ -501,7 +669,7 @@
             
             grid.innerHTML += `
                 <div class="col-6 col-lg-4">
-                    <button class="btn w-100 menu-selector-btn d-flex align-items-center" onclick="handleMenuSelection(${m.id})" ${disableAttr}>
+                    <button class="btn w-100 menu-selector-btn d-flex align-items-center" onclick="handleMenuSelection(${m.id}, 'bill')" ${disableAttr}>
                         ${imgHtml}
                         <div style="overflow:hidden;"><div class="fw-bold text-truncate text-start" style="font-size:0.85rem;">${m.name} ${statusLabel}</div><small class="text-success">${m.price} ฿</small></div>
                     </button>
@@ -539,8 +707,10 @@
         await saveOrderUpdate();
     }
 
-    // ฟังก์ชันจัดการตอนคลิกเมนู (เปิด Modal เลือก Topping)
-    function handleMenuSelection(menuId) {
+
+    // ====== Topping & Interactive Modal Logic (แชร์กันระหว่าง POS กับ Bill) ======
+    function handleMenuSelection(menuId, mode) {
+        currentInteractionMode = mode; // จดจำว่ากดมาจากหน้าไหน ('pos' หรือ 'bill')
         const m = allMenus.find(x => x.id === menuId);
         if(!m) return;
 
@@ -602,25 +772,33 @@
         
         const finalOptionString = optionsTextArr.join(', ');
 
-        // Check if identical item (same options/note) exists to merge qty
-        const existIdx = selectedOrder.items.findIndex(i => i.id === tempConfigItem.id && i.option === finalOptionString);
+        const newItemData = {
+            id: tempConfigItem.id, 
+            name: tempConfigItem.name, 
+            price: finalPrice, 
+            qty: 1, 
+            option: finalOptionString,
+            note: note 
+        };
+
+        if (currentInteractionMode === 'bill') {
+            // โหมดเพิ่มของเข้าบิลเดิม
+            const existIdx = selectedOrder.items.findIndex(i => i.id === tempConfigItem.id && i.option === finalOptionString);
+            if(existIdx !== -1) { selectedOrder.items[existIdx].qty = (selectedOrder.items[existIdx].qty || 1) + 1; } 
+            else { selectedOrder.items.push(newItemData); }
+            bootstrap.Modal.getInstance(document.getElementById('itemConfigModal')).hide();
+            await saveOrderUpdate();
+            Swal.mixin({ toast: true, position: 'center', showConfirmButton: false, timer: 800 }).fire({ icon: 'success', title: 'เพิ่มลงบิลแล้ว' });
         
-        if(existIdx !== -1) { 
-            selectedOrder.items[existIdx].qty = (selectedOrder.items[existIdx].qty || 1) + 1; 
-        } else { 
-            selectedOrder.items.push({ 
-                id: tempConfigItem.id, 
-                name: tempConfigItem.name, 
-                price: finalPrice, 
-                qty: 1, 
-                option: finalOptionString,
-                note: note 
-            }); 
+        } else if (currentInteractionMode === 'pos') {
+            // โหมดเพิ่มของลงตะกร้าเปิดโต๊ะใหม่
+            const existIdx = posCart.findIndex(i => i.id === tempConfigItem.id && i.option === finalOptionString);
+            if(existIdx !== -1) { posCart[existIdx].qty = (posCart[existIdx].qty || 1) + 1; } 
+            else { posCart.push(newItemData); }
+            bootstrap.Modal.getInstance(document.getElementById('itemConfigModal')).hide();
+            renderPOSCart();
+            Swal.mixin({ toast: true, position: 'center', showConfirmButton: false, timer: 500 }).fire({ icon: 'success', title: 'เพิ่มลงตะกร้าแล้ว' });
         }
-        
-        bootstrap.Modal.getInstance(document.getElementById('itemConfigModal')).hide();
-        await saveOrderUpdate();
-        Swal.mixin({ toast: true, position: 'center', showConfirmButton: false, timer: 800 }).fire({ icon: 'success', title: 'เพิ่มลงบิลแล้ว' });
     }
 
     async function saveOrderUpdate() {
@@ -632,14 +810,12 @@
         fetchOrders();
     }
 
-    // --- Receipt & Checkout Logic ---
+
+    // ====== Receipt & Checkout Logic ======
     function openReceiptPreview() {
         if(selectedOrder.items.length === 0) { alert('ไม่มีรายการอาหารในบิล'); return; }
-        
-        // Hide Bill Modal temporarily
         bootstrap.Modal.getInstance(document.getElementById('billModal')).hide();
         
-        // Prepare Receipt Data
         const total = selectedOrder.items.reduce((s,i)=>s+(i.price*(i.qty||1)),0);
         document.getElementById('calcTotal').value = total;
         document.getElementById('calcDiscount').value = 0;
@@ -690,7 +866,7 @@
         }
 
         document.getElementById('printNetTotal').innerText = net.toLocaleString();
-        calculateChange(); // triggers updating print received/change
+        calculateChange(); 
     }
 
     function calculateChange() {
@@ -707,7 +883,6 @@
         document.getElementById('printReceived').innerText = received > 0 ? received.toLocaleString() : net.toLocaleString();
         document.getElementById('printChange').innerText = change > 0 ? change.toLocaleString() : '0';
         
-        // Update Net on Print if discount changed
         document.getElementById('printNetTotal').innerText = net.toLocaleString();
         if(discount > 0) {
             document.getElementById('printDiscountRow').style.display = 'flex';
@@ -722,19 +897,16 @@
         const discount = parseFloat(document.getElementById('calcDiscount').value) || 0;
         const net = subtotal - discount;
 
-        // อัพเดทยอดเงินสุดท้ายลง DB เผื่อมีส่วนลด (สามารถขยายโครงสร้าง DB ให้รับส่วนลดทีหลังได้ ตอนนี้หักยอดรวมเลย)
         await db.from('orders').update({status:'paid', total_price: net}).eq('id', selectedOrder.id);
-        
-        // สั่ง Print
         window.print();
         
-        // ปิด Modal และรีเฟรชหน้า
         bootstrap.Modal.getInstance(document.getElementById('receiptModal')).hide();
         Swal.fire({ icon: 'success', title: 'รับเงินและปิดโต๊ะเรียบร้อย', timer: 1500, showConfirmButton: false });
         fetchOrders(); 
     }
 
-    // --- Menu CRUD Logic (คงเดิมตามที่คุณอัพเดทมา) ---
+
+    // ====== Menu CRUD Logic ======
     async function fetchMenu() {
         const { data } = await db.from('menu_items').select('*').order('id');
         allMenus = data || [];
@@ -851,7 +1023,7 @@
         if(confirm('ยืนยันลบเมนูนี้?')) { await db.from('menu_items').delete().eq('id', id); fetchMenu(); } 
     }
 
-    // --- Report Logic ---
+    // ====== Report Logic ======
     async function renderReport(mode) {
         const tbody = document.getElementById('reportContent'); tbody.innerHTML='<div class="text-center py-4">Generating report...</div>';
         const { data } = await db.from('orders').select('*').eq('status','paid').order('created_at',{ascending:true});
