@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restaurant Pro - Admin (Auto Detect)</title>
+    <title>ร้านบ้านไม้คาเฟ่ - Admin Pro</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -39,9 +39,23 @@
         .menu-selector-btn { text-align: left; white-space: normal; height: auto; padding: 8px; border: 1px solid #dee2e6; background: white; transition: 0.2s; }
         .menu-selector-btn:hover { border-color: #0d6efd; background: #f8f9fa; transform: translateY(-2px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         
+        /* Receipt Paper Style */
+        .receipt-paper { width: 100%; max-width: 350px; margin: 0 auto; background: white; padding: 20px; font-family: 'Courier New', Courier, monospace; border: 1px solid #ddd; box-shadow: 0 4px 8px rgba(0,0,0,0.05); color: #000;}
+        .receipt-paper hr { border-top: 1px dashed #000; margin: 10px 0; opacity: 1; }
+        .receipt-table { width: 100%; font-size: 0.9rem; }
+        .receipt-table th, .receipt-table td { padding: 4px 0; }
+
         @media(max-width: 992px) {
             .sidebar { display: none; }
             .main { margin-left: 0; padding: 15px; }
+        }
+
+        /* Print Settings */
+        @media print {
+            body * { visibility: hidden; }
+            #receiptPrintArea, #receiptPrintArea * { visibility: visible; }
+            #receiptPrintArea { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 10px; box-shadow: none; border: none; }
+            .modal-content { border: none; box-shadow: none; }
         }
     </style>
 </head>
@@ -76,6 +90,7 @@
         <div class="row" id="orderGrid"><div class="col-12 text-center py-5">Waiting for orders...</div></div>
     </div>
 
+    <!-- ... (ส่วนของ view-menu และ view-report คงเดิม ไม่ได้ตัดออกเพื่อให้สมบูรณ์) ... -->
     <div id="view-menu" class="d-none">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3>จัดการเมนู</h3>
@@ -128,6 +143,7 @@
     </div>
 </div>
 
+<!-- Modal เพิ่ม/แก้ไขเมนู (คงเดิม) -->
 <div class="modal fade" id="menuModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -177,6 +193,7 @@
     </div>
 </div>
 
+<!-- Modal จัดการโต๊ะ (บิลออเดอร์) -->
 <div class="modal fade" id="billModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
@@ -198,15 +215,139 @@
                             <h5 class="text-muted m-0">ยอดสุทธิ</h5>
                             <h3 class="text-primary fw-bold m-0" id="modalTotal">0 ฿</h3>
                         </div>
-                        <button class="btn btn-success fw-bold w-100 mt-3 py-2" onclick="checkBin()">💰 รับเงิน / ปิดโต๊ะ</button>
+                        <!-- เปลี่ยนจากจ่ายเงินตรงๆ เป็นเปิดหน้าใบเสร็จ -->
+                        <button class="btn btn-success fw-bold w-100 mt-3 py-3 shadow-sm" onclick="openReceiptPreview()"><i class="fas fa-calculator"></i> คิดเงิน / ออกใบเสร็จ</button>
                     </div>
 
                     <div class="col-md-7 order-md-1 mb-3">
-                        <h6 class="fw-bold text-muted mb-2">เพิ่มรายการใหม่</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-bold text-muted mb-0">เพิ่มรายการใหม่</h6>
+                            <!-- เพิ่มช่องค้นหาเมนูในหน้าบิล -->
+                            <div class="input-group input-group-sm w-50">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" id="billSearchMenu" class="form-control" placeholder="ค้นหาเมนู..." onkeyup="filterBillMenuGrid()">
+                            </div>
+                        </div>
+                        
                         <div class="d-flex gap-2 overflow-auto pb-2 mb-2" id="billMenuCategories"></div>
                         <div class="row g-2" id="billMenuGrid" style="max-height: 450px; overflow-y: auto; align-content: flex-start;"></div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal สำหรับเลือก Topping และใส่หมายเหตุ (Interactive Order) -->
+<div class="modal fade" id="itemConfigModal" tabindex="-1" style="z-index: 1060;">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h6 class="modal-title fw-bold" id="configMenuName">เลือกตัวเลือก</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <img id="configMenuImg" src="" style="width:80px;height:80px;object-fit:cover;border-radius:10px;display:none;">
+                    <h5 class="mt-2 fw-bold text-success" id="configMenuPrice">0 ฿</h5>
+                </div>
+                
+                <div id="configToppingsArea" class="mb-3 d-none">
+                    <label class="fw-bold text-muted small mb-2">เพิ่มท็อปปิ้ง (เลือกได้มากกว่า 1)</label>
+                    <div id="configToppingsList"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="fw-bold text-muted small mb-1">หมายเหตุ (ความหวาน, ไม่ใส่ผัก ฯลฯ)</label>
+                    <textarea id="configMenuNote" class="form-control form-control-sm" rows="2" placeholder="เช่น หวานน้อย, ไม่ชูรส"></textarea>
+                </div>
+                <div class="d-flex justify-content-between align-items-center bg-light p-2 rounded">
+                    <span class="fw-bold">ราคารวม:</span>
+                    <span class="fw-bold text-primary fs-5" id="configTotalPrice">0 ฿</span>
+                </div>
+            </div>
+            <div class="modal-footer p-2">
+                <button type="button" class="btn btn-primary w-100 fw-bold" onclick="confirmItemConfig()">ตกลง (Add to Bill)</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal สำหรับใบเสร็จและคิดเงิน -->
+<div class="modal fade" id="receiptModal" tabindex="-1" style="z-index: 1060;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title"><i class="fas fa-print"></i> ตรวจสอบใบเสร็จ & รับเงิน</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <!-- ส่วนแก้ไขข้อมูลใบเสร็จและชำระเงิน -->
+                    <div class="col-md-6 mb-3 border-end">
+                        <h6 class="fw-bold mb-3">ตั้งค่าใบเสร็จ & การรับเงิน</h6>
+                        <div class="mb-2">
+                            <label class="form-label small text-muted mb-1">ชื่อร้าน / หัวบิล (แก้ไขได้)</label>
+                            <input type="text" id="editStoreName" class="form-control form-control-sm" value="บ้านไม้คาเฟ่ (Baanmai Cafe)" onkeyup="updateReceiptPreview()">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted mb-1">ข้อความท้ายบิล</label>
+                            <input type="text" id="editFooterNote" class="form-control form-control-sm" value="ขอบคุณที่ใช้บริการค่ะ" onkeyup="updateReceiptPreview()">
+                        </div>
+                        <hr>
+                        <div class="mb-2">
+                            <label class="form-label fw-bold mb-1">ยอดรวมสุทธิ</label>
+                            <input type="text" id="calcTotal" class="form-control bg-light fw-bold text-primary fs-5 text-end" readonly value="0">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label fw-bold mb-1">ส่วนลด (บาท)</label>
+                            <input type="number" id="calcDiscount" class="form-control text-end" value="0" onkeyup="calculateChange()" onchange="calculateChange()">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label fw-bold mb-1">รับเงินสดมา (บาท)</label>
+                            <input type="number" id="calcReceived" class="form-control text-end fs-5" placeholder="กรอกจำนวนเงิน" onkeyup="calculateChange()">
+                        </div>
+                        <div class="mt-3 p-3 bg-success bg-opacity-10 rounded border border-success">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0 text-success fw-bold">เงินทอน:</h5>
+                                <h3 class="mb-0 text-success fw-bold" id="calcChange">0.00</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ส่วน Preview ใบเสร็จ -->
+                    <div class="col-md-6 bg-light p-3 rounded d-flex justify-content-center align-items-start">
+                        <!-- พื้นที่นี้จะถูก Print -->
+                        <div id="receiptPrintArea" class="receipt-paper">
+                            <div class="text-center mb-2">
+                                <h5 class="fw-bold m-0" id="printStoreName">บ้านไม้คาเฟ่ (Baanmai Cafe)</h5>
+                                <small>ใบเสร็จรับเงิน / Receipt</small>
+                            </div>
+                            <div class="small">
+                                <div class="d-flex justify-content-between"><span>โต๊ะ: <b id="printTableNo"></b></span> <span id="printDate"></span></div>
+                                <div class="d-flex justify-content-between"><span>พนักงาน: Admin</span> <span id="printTime"></span></div>
+                            </div>
+                            <hr>
+                            <table class="receipt-table">
+                                <thead><tr><th class="text-start">รายการ</th><th class="text-center" width="15%">จน.</th><th class="text-end" width="25%">รวม</th></tr></thead>
+                                <tbody id="printItems"></tbody>
+                            </table>
+                            <hr>
+                            <div class="d-flex justify-content-between small"><span>ยอดรวม (Subtotal):</span> <span id="printSubtotal">0</span></div>
+                            <div class="d-flex justify-content-between small text-danger" id="printDiscountRow" style="display:none !important;"><span>ส่วนลด (Discount):</span> <span id="printDiscount">0</span></div>
+                            <div class="d-flex justify-content-between mt-1 fs-6 fw-bold"><span>ยอดสุทธิ (Total):</span> <span id="printNetTotal">0</span></div>
+                            <hr>
+                            <div class="d-flex justify-content-between small"><span>รับเงินสด (Cash):</span> <span id="printReceived">0</span></div>
+                            <div class="d-flex justify-content-between small"><span>เงินทอน (Change):</span> <span id="printChange">0</span></div>
+                            <hr>
+                            <div class="text-center small mt-2" id="printFooterNote">ขอบคุณที่ใช้บริการค่ะ</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-primary px-4 fw-bold" onclick="printAndCompleteBill()"><i class="fas fa-print"></i> พิมพ์ & ปิดโต๊ะ</button>
             </div>
         </div>
     </div>
@@ -226,30 +367,15 @@
     let currentOrders = [];
     let selectedOrder = null;
     let currentBillCategory = 'ทั้งหมด';
-    let lastOrderCount = 0; // เก็บจำนวนออเดอร์ล่าสุดเพื่อใช้ตรวจจับการเปลี่ยนแปลง
+    let lastOrderCount = 0;
+    
+    // Config Item State
+    let tempConfigItem = null;
+    let tempConfigBasePrice = 0;
 
-    // --- Initialization ---
     document.addEventListener('DOMContentLoaded', () => {
         fetchOrders();
         setupRealtime();
-
-        setInterval(async () => {
-            const { count, error } = await db
-                .from('orders')
-                .select('*', { count: 'exact', head: true })
-                .neq('status', 'paid');
-
-            if (!error && count !== null) {
-                if (count > lastOrderCount) {
-                    playNotification();
-                    Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 4000 }).fire({ icon: 'success', title: `🔔 พบออเดอร์ใหม่! (รวม ${count} โต๊ะ)` });
-                    fetchOrders();
-                } else if (count < lastOrderCount) {
-                    fetchOrders();
-                }
-                lastOrderCount = count;
-            }
-        }, 5000);
     });
 
     function setupRealtime() {
@@ -260,8 +386,7 @@
                 Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 }).fire({ icon: 'success', title: '🔔 มีออเดอร์ใหม่!' });
             }
             fetchOrders();
-        })
-        .subscribe();
+        }).subscribe();
     }
 
     function playNotification() { notificationSound.play().catch(e => console.log("Audio blocked:", e)); }
@@ -282,8 +407,7 @@
     // --- Dashboard Logic ---
     async function fetchOrders() {
         const { data, error } = await db.from('orders').select('*').neq('status', 'paid').order('created_at', {ascending:false}); 
-        if(error) { console.error(error); return; }
-        
+        if(error) return;
         currentOrders = data || [];
         lastOrderCount = currentOrders.length;
         renderDashboard();
@@ -306,10 +430,10 @@
             
             grid.innerHTML += `
                 <div class="col-md-6 col-lg-4 col-xl-3">
-                    <div class="card p-3 mb-3 border-start border-4 border-${badge === 'bg-warning' ? 'warning' : (badge === 'bg-danger' ? 'danger' : 'success')}">
+                    <div class="card p-3 mb-3 border-start border-4 border-${badge === 'bg-warning' ? 'warning' : (badge === 'bg-danger' ? 'danger' : 'success')} shadow-sm">
                         <div class="d-flex justify-content-between mb-2"><h5 class="m-0 fw-bold">โต๊ะ ${o.table_no}</h5><span class="badge ${badge}">${statusText}</span></div>
                         <div class="bg-light p-2 rounded mb-2 small" style="max-height:100px;overflow-y:auto">
-                            ${o.items.map(i=> `<div>- ${i.name} ${i.option?`(${i.option})`:''} <span class="text-muted">x${i.qty||1}</span></div>`).join('')}
+                            ${o.items.map(i=> `<div>- ${i.name} ${i.option?`<br><small class="text-muted ms-2">(${i.option})</small>`:''} <span class="float-end text-muted">x${i.qty||1}</span></div>`).join('')}
                         </div>
                         <h5 class="text-end fw-bold text-primary">${o.total_price.toLocaleString()} ฿</h5>
                         ${actionBtn}
@@ -321,12 +445,13 @@
 
     async function setStatus(id, st) { await db.from('orders').update({status:st}).eq('id', id); fetchOrders(); }
 
-    // --- Bill Logic ---
+    // --- Bill Logic & Interactive Menu ---
     async function openBill(id) {
         const { data } = await db.from('orders').select('*').eq('id', id).single();
         selectedOrder = data;
         if(allMenus.length === 0) await fetchMenu();
         document.getElementById('modalTableNo').innerText = selectedOrder.table_no;
+        document.getElementById('billSearchMenu').value = ''; // รีเซ็ตช่องค้นหา
         renderBillItems();
         renderBillCategories();
         renderBillMenuGrid('ทั้งหมด');
@@ -344,24 +469,41 @@
         });
     }
 
-    function changeBillCategory(cat) { currentBillCategory = cat; renderBillCategories(); renderBillMenuGrid(cat); }
+    function changeBillCategory(cat) { 
+        currentBillCategory = cat; 
+        document.getElementById('billSearchMenu').value = ''; // เคลียร์ช่องค้นหาเมื่อเปลี่ยนหมวด
+        renderBillCategories(); 
+        renderBillMenuGrid(cat); 
+    }
+
+    function filterBillMenuGrid() {
+        renderBillMenuGrid(currentBillCategory);
+    }
 
     function renderBillMenuGrid(cat) {
         const grid = document.getElementById('billMenuGrid');
         grid.innerHTML = '';
-        const items = cat === 'ทั้งหมด' ? allMenus : allMenus.filter(m => m.category === cat);
-        if(items.length === 0) { grid.innerHTML = '<div class="text-center w-100 text-muted mt-3">ไม่มีรายการในหมวดนี้</div>'; return; }
+        const searchKeyword = document.getElementById('billSearchMenu').value.toLowerCase();
+        
+        let items = cat === 'ทั้งหมด' ? allMenus : allMenus.filter(m => m.category === cat);
+        
+        // กรองตามคำค้นหา
+        if(searchKeyword) {
+            items = items.filter(m => m.name.toLowerCase().includes(searchKeyword));
+        }
+
+        if(items.length === 0) { grid.innerHTML = '<div class="text-center w-100 text-muted mt-3">ไม่มีรายการที่ค้นหา</div>'; return; }
+        
         items.forEach(m => {
-            // เช็คสถานะเพื่อจัดการสี (ถ้าหมด ให้ปุ่มจางลงและกดไม่ได้)
             const disableAttr = m.is_available === false ? 'disabled style="opacity: 0.5;"' : '';
-            const statusLabel = m.is_available === false ? '<span class="badge bg-danger ms-2">หมด</span>' : '';
+            const statusLabel = m.is_available === false ? '<span class="badge bg-danger ms-2" style="font-size:0.6rem;">หมด</span>' : '';
             const imgHtml = m.image_url ? `<img src="${m.image_url}" style="width:40px;height:40px;border-radius:5px;object-fit:cover;" class="me-2">` : '';
             
             grid.innerHTML += `
                 <div class="col-6 col-lg-4">
-                    <button class="btn w-100 menu-selector-btn d-flex align-items-center" onclick="addMenuToBill(${m.id})" ${disableAttr}>
+                    <button class="btn w-100 menu-selector-btn d-flex align-items-center" onclick="handleMenuSelection(${m.id})" ${disableAttr}>
                         ${imgHtml}
-                        <div style="overflow:hidden;"><div class="fw-bold text-truncate">${m.name} ${statusLabel}</div><small class="text-success">${m.price} ฿</small></div>
+                        <div style="overflow:hidden;"><div class="fw-bold text-truncate text-start" style="font-size:0.85rem;">${m.name} ${statusLabel}</div><small class="text-success">${m.price} ฿</small></div>
                     </button>
                 </div>`;
         });
@@ -376,13 +518,13 @@
             const itemTotal = item.price * qty;
             total += itemTotal;
             tbody.innerHTML += `<tr>
-                <td><div class="fw-bold">${item.name}</div>${item.option ? `<small class="text-muted">${item.option}</small>` : ''}</td>
-                <td><div class="input-group input-group-sm" style="width: 90px;">
+                <td><div class="fw-bold" style="font-size:0.9rem;">${item.name}</div>${item.option ? `<small class="text-muted" style="font-size:0.75rem;">${item.option}</small>` : ''}</td>
+                <td><div class="input-group input-group-sm" style="width: 85px;">
                     <button class="btn btn-outline-secondary px-2" onclick="adjustItem(${index},-1)">-</button>
-                    <span class="form-control text-center px-0 bg-white">${qty}</span>
+                    <span class="form-control text-center px-0 bg-white" style="font-size:0.85rem;">${qty}</span>
                     <button class="btn btn-outline-secondary px-2" onclick="adjustItem(${index},1)">+</button>
                 </div></td>
-                <td class="text-end fw-bold">${itemTotal.toLocaleString()}</td>
+                <td class="text-end fw-bold text-primary align-middle">${itemTotal.toLocaleString()}</td>
             </tr>`;
         });
         document.getElementById('modalTotal').innerText = total.toLocaleString() + " ฿";
@@ -397,14 +539,88 @@
         await saveOrderUpdate();
     }
 
-    async function addMenuToBill(menuId) {
+    // ฟังก์ชันจัดการตอนคลิกเมนู (เปิด Modal เลือก Topping)
+    function handleMenuSelection(menuId) {
         const m = allMenus.find(x => x.id === menuId);
         if(!m) return;
-        const exist = selectedOrder.items.find(i => i.id === m.id && !i.option);
-        if(exist) { exist.qty = (exist.qty || 1) + 1; } 
-        else { selectedOrder.items.push({ id: m.id, name: m.name, price: m.price, qty: 1, option: '', note: '' }); }
+
+        tempConfigItem = m;
+        tempConfigBasePrice = m.price;
+        
+        document.getElementById('configMenuName').innerText = m.name;
+        document.getElementById('configMenuPrice').innerText = m.price + ' ฿';
+        document.getElementById('configTotalPrice').innerText = m.price + ' ฿';
+        document.getElementById('configMenuNote').value = '';
+        
+        const img = document.getElementById('configMenuImg');
+        if(m.image_url) { img.src = m.image_url; img.style.display = 'inline-block'; } 
+        else { img.style.display = 'none'; }
+
+        const toppingArea = document.getElementById('configToppingsArea');
+        const toppingList = document.getElementById('configToppingsList');
+        toppingList.innerHTML = '';
+        
+        if(m.options && m.options.length > 0) {
+            toppingArea.classList.remove('d-none');
+            m.options.forEach((opt, idx) => {
+                toppingList.innerHTML += `
+                    <div class="form-check border-bottom pb-1 mb-1">
+                        <input class="form-check-input config-topping-check" type="checkbox" value="${idx}" id="top_${idx}" onchange="updateConfigPrice()">
+                        <label class="form-check-label d-flex justify-content-between w-100" for="top_${idx}">
+                            <span>${opt.name}</span> <span class="text-success">+${opt.price}฿</span>
+                        </label>
+                    </div>`;
+            });
+        } else {
+            toppingArea.classList.add('d-none');
+        }
+
+        new bootstrap.Modal(document.getElementById('itemConfigModal')).show();
+    }
+
+    function updateConfigPrice() {
+        let total = tempConfigBasePrice;
+        document.querySelectorAll('.config-topping-check:checked').forEach(cb => {
+            const opt = tempConfigItem.options[cb.value];
+            total += opt.price;
+        });
+        document.getElementById('configTotalPrice').innerText = total + ' ฿';
+    }
+
+    async function confirmItemConfig() {
+        let finalPrice = tempConfigBasePrice;
+        let optionsTextArr = [];
+        
+        document.querySelectorAll('.config-topping-check:checked').forEach(cb => {
+            const opt = tempConfigItem.options[cb.value];
+            finalPrice += opt.price;
+            optionsTextArr.push(opt.name);
+        });
+
+        const note = document.getElementById('configMenuNote').value.trim();
+        if(note) optionsTextArr.push(`*${note}`);
+        
+        const finalOptionString = optionsTextArr.join(', ');
+
+        // Check if identical item (same options/note) exists to merge qty
+        const existIdx = selectedOrder.items.findIndex(i => i.id === tempConfigItem.id && i.option === finalOptionString);
+        
+        if(existIdx !== -1) { 
+            selectedOrder.items[existIdx].qty = (selectedOrder.items[existIdx].qty || 1) + 1; 
+        } else { 
+            selectedOrder.items.push({ 
+                id: tempConfigItem.id, 
+                name: tempConfigItem.name, 
+                price: finalPrice, 
+                qty: 1, 
+                option: finalOptionString,
+                note: note 
+            }); 
+        }
+        
+        bootstrap.Modal.getInstance(document.getElementById('itemConfigModal')).hide();
         await saveOrderUpdate();
-        Swal.mixin({ toast: true, position: 'center', showConfirmButton: false, timer: 1000 }).fire({ icon: 'success', title: 'เพิ่ม ' + m.name });
+        Swal.mixin({ toast: true, position: 'center', showConfirmButton: false, timer: 800 }).fire({ icon: 'success', title: 'เพิ่มลงบิลแล้ว' });
     }
 
     async function saveOrderUpdate() {
@@ -416,29 +632,120 @@
         fetchOrders();
     }
 
-    async function checkBin() {
-        if(confirm('ยืนยันรับเงินและปิดโต๊ะนี้?')) {
-            await db.from('orders').update({status:'paid'}).eq('id', selectedOrder.id);
-            bootstrap.Modal.getInstance(document.getElementById('billModal')).hide();
-            fetchOrders(); 
+    // --- Receipt & Checkout Logic ---
+    function openReceiptPreview() {
+        if(selectedOrder.items.length === 0) { alert('ไม่มีรายการอาหารในบิล'); return; }
+        
+        // Hide Bill Modal temporarily
+        bootstrap.Modal.getInstance(document.getElementById('billModal')).hide();
+        
+        // Prepare Receipt Data
+        const total = selectedOrder.items.reduce((s,i)=>s+(i.price*(i.qty||1)),0);
+        document.getElementById('calcTotal').value = total;
+        document.getElementById('calcDiscount').value = 0;
+        document.getElementById('calcReceived').value = '';
+        document.getElementById('calcChange').innerText = '0.00';
+        
+        updateReceiptPreview();
+        new bootstrap.Modal(document.getElementById('receiptModal')).show();
+    }
+
+    function updateReceiptPreview() {
+        const storeName = document.getElementById('editStoreName').value;
+        const footerNote = document.getElementById('editFooterNote').value;
+        
+        document.getElementById('printStoreName').innerText = storeName;
+        document.getElementById('printFooterNote').innerText = footerNote;
+        document.getElementById('printTableNo').innerText = selectedOrder.table_no;
+        
+        const now = new Date();
+        document.getElementById('printDate').innerText = now.toLocaleDateString('th-TH');
+        document.getElementById('printTime').innerText = now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
+
+        const tbody = document.getElementById('printItems');
+        tbody.innerHTML = '';
+        let subtotal = 0;
+        selectedOrder.items.forEach(item => {
+            const qty = item.qty || 1;
+            const amt = item.price * qty;
+            subtotal += amt;
+            tbody.innerHTML += `
+                <tr>
+                    <td class="text-start">${item.name}<br><small style="font-size:0.7em;color:#555;">${item.option||''}</small></td>
+                    <td class="text-center">${qty}</td>
+                    <td class="text-end">${amt.toLocaleString()}</td>
+                </tr>`;
+        });
+
+        const discount = parseFloat(document.getElementById('calcDiscount').value) || 0;
+        const net = subtotal - discount;
+
+        document.getElementById('printSubtotal').innerText = subtotal.toLocaleString();
+        
+        if(discount > 0) {
+            document.getElementById('printDiscountRow').style.display = 'flex';
+            document.getElementById('printDiscount').innerText = '-' + discount.toLocaleString();
+        } else {
+            document.getElementById('printDiscountRow').style.display = 'none';
+        }
+
+        document.getElementById('printNetTotal').innerText = net.toLocaleString();
+        calculateChange(); // triggers updating print received/change
+    }
+
+    function calculateChange() {
+        const subtotal = parseFloat(document.getElementById('calcTotal').value) || 0;
+        const discount = parseFloat(document.getElementById('calcDiscount').value) || 0;
+        const net = subtotal - discount;
+        const received = parseFloat(document.getElementById('calcReceived').value) || 0;
+        
+        let change = received - net;
+        if(received === 0 || isNaN(received)) change = 0;
+
+        document.getElementById('calcChange').innerText = change > 0 ? change.toLocaleString(undefined,{minimumFractionDigits:2}) : '0.00';
+        
+        document.getElementById('printReceived').innerText = received > 0 ? received.toLocaleString() : net.toLocaleString();
+        document.getElementById('printChange').innerText = change > 0 ? change.toLocaleString() : '0';
+        
+        // Update Net on Print if discount changed
+        document.getElementById('printNetTotal').innerText = net.toLocaleString();
+        if(discount > 0) {
+            document.getElementById('printDiscountRow').style.display = 'flex';
+            document.getElementById('printDiscount').innerText = '-' + discount.toLocaleString();
+        } else {
+            document.getElementById('printDiscountRow').style.display = 'none';
         }
     }
 
-    // --- Menu Logic ---
+    async function printAndCompleteBill() {
+        const subtotal = parseFloat(document.getElementById('calcTotal').value) || 0;
+        const discount = parseFloat(document.getElementById('calcDiscount').value) || 0;
+        const net = subtotal - discount;
+
+        // อัพเดทยอดเงินสุดท้ายลง DB เผื่อมีส่วนลด (สามารถขยายโครงสร้าง DB ให้รับส่วนลดทีหลังได้ ตอนนี้หักยอดรวมเลย)
+        await db.from('orders').update({status:'paid', total_price: net}).eq('id', selectedOrder.id);
+        
+        // สั่ง Print
+        window.print();
+        
+        // ปิด Modal และรีเฟรชหน้า
+        bootstrap.Modal.getInstance(document.getElementById('receiptModal')).hide();
+        Swal.fire({ icon: 'success', title: 'รับเงินและปิดโต๊ะเรียบร้อย', timer: 1500, showConfirmButton: false });
+        fetchOrders(); 
+    }
+
+    // --- Menu CRUD Logic (คงเดิมตามที่คุณอัพเดทมา) ---
     async function fetchMenu() {
         const { data } = await db.from('menu_items').select('*').order('id');
         allMenus = data || [];
         renderMenuTable();
     }
 
-    function filterMenu() {
-        renderMenuTable();
-    }
+    function filterMenu() { renderMenuTable(); }
 
     function renderMenuTable() {
         const tbody = document.getElementById('menuTableBody');
         tbody.innerHTML = '';
-        
         const searchQuery = document.getElementById('searchMenuInput').value.toLowerCase();
         const categoryQuery = document.getElementById('filterMenuCategory').value;
 
@@ -448,14 +755,10 @@
             return matchSearch && matchCategory;
         });
 
-        if(filteredMenus.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">ไม่พบเมนูที่ค้นหา</td></tr>';
-            return;
-        }
+        if(filteredMenus.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">ไม่พบเมนูที่ค้นหา</td></tr>'; return; }
 
         filteredMenus.forEach(m => {
-            // ส่วนที่เพิ่มใหม่: ปุ่มสลับสถานะ (Quick Toggle)
-            const isAvail = m.is_available !== false; // ถ้า undefined ให้ถือเป็น true
+            const isAvail = m.is_available !== false; 
             const statusBadge = isAvail ? '<span class="badge bg-success">ขาย</span>' : '<span class="badge bg-danger">หมด</span>';
             const toggleBtn = isAvail 
                 ? `<button class="btn btn-sm btn-outline-warning" onclick="toggleMenuStatus(${m.id}, false)" title="เปลี่ยนเป็น 'หมด'"><i class="fas fa-ban"></i></button>`
@@ -478,10 +781,8 @@
         });
     }
 
-    // ฟังก์ชันใหม่: สำหรับกดเปลี่ยนสถานะด่วนที่หน้าตาราง
     async function toggleMenuStatus(id, isAvailable) {
         await db.from('menu_items').update({ is_available: isAvailable }).eq('id', id);
-        // แสดง Toast แจ้งเตือนสั้นๆ
         Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 }).fire({ icon: 'success', title: isAvailable ? 'เปิดขายเมนูนี้แล้ว' : 'ตั้งค่าเมนูเป็น "หมด" แล้ว' });
         fetchMenu();
     }
@@ -497,7 +798,7 @@
         document.getElementById('menuForm').reset(); 
         document.getElementById('editMenuId').value=""; 
         document.getElementById('previewImg').src = 'https://via.placeholder.com/150?text=Upload';
-        document.getElementById('menuStatus').value = "true"; // ตั้งค่าเริ่มต้นเป็น ขาย
+        document.getElementById('menuStatus').value = "true";
         document.getElementById('toppingContainer').innerHTML=''; 
         addToppingInput(); 
         new bootstrap.Modal(document.getElementById('menuModal')).show(); 
@@ -509,7 +810,7 @@
         document.getElementById('menuName').value=m.name; 
         document.getElementById('menuPrice').value=m.price; 
         document.getElementById('menuCategory').value=m.category;
-        document.getElementById('menuStatus').value = m.is_available === false ? "false" : "true"; // โหลดสถานะเดิม
+        document.getElementById('menuStatus').value = m.is_available === false ? "false" : "true";
         document.getElementById('previewImg').src=m.image_url||"https://via.placeholder.com/150?text=Upload";
         document.getElementById('toppingContainer').innerHTML='';
         if(m.options && m.options.length) m.options.forEach(o=>addToppingInput(o.name,o.price)); else addToppingInput();
@@ -523,7 +824,7 @@
         const name = document.getElementById('menuName').value;
         const price = parseInt(document.getElementById('menuPrice').value);
         const category = document.getElementById('menuCategory').value;
-        const is_available = document.getElementById('menuStatus').value === "true"; // แปลงค่าเป็น Boolean
+        const is_available = document.getElementById('menuStatus').value === "true"; 
         
         const tops = []; 
         document.querySelectorAll('.topping-row').forEach(r=>{ const n=r.querySelector('.topping-name').value.trim(); if(n) tops.push({name:n, price:parseInt(r.querySelector('.topping-price').value||0)}) });
@@ -539,7 +840,6 @@
             if(!error) { const {data} = db.storage.from('menu_images').getPublicUrl(fName); img=data.publicUrl; }
         }
         
-        // เพิ่มตัวแปร is_available ส่งเข้าฐานข้อมูล
         const payload = {name, price, category, options:tops, image_url:img, is_available};
         
         if(id) await db.from('menu_items').update(payload).eq('id', id); else await db.from('menu_items').insert([payload]);
